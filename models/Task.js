@@ -23,6 +23,7 @@ const taskSchema = new mongoose.Schema(
 
     startTime: { type: Date },
     endTime: { type: Date },
+    dueDate: Date,
 
     proof: {
       imageUrl: { type: String },

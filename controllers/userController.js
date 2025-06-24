@@ -10,35 +10,6 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// @desc Create a new user
-// exports.createUser = async (req, res) => {
-//   try {
-//     const { name, email,phone, role, location } = req.body;
-
-//     if (!name || !email || !role || !phone) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     const userExists = await User.findOne({ email });
-//     if (userExists) {
-//       return res.status(400).json({ message: "User already exists" });
-//     }
-
-//     const newUser = new User({
-//       name,
-//       email,
-//       role,
-//       location,
-//       phone,
-//     });
-
-//     await newUser.save();
-//     res.status(201).json({ message: "User created", user: newUser });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 exports.createUser = async (req, res) => {
   try {
     const { name, email, phone, role, location } = req.body;
@@ -117,7 +88,7 @@ exports.deleteUser = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-
+    
     const user = await User.findById(id).select("-password"); // Exclude password
 
     if (!user) {
@@ -127,5 +98,24 @@ exports.getUserById = async (req, res) => {
     res.json({ user });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// @desc Get all agents (id and name only)
+// controllers/userController.js
+
+exports.getAgents = async (req, res) => {
+  try {
+    console.log("[getAgents] Request received");
+
+    const agents = await User.find({ role: "agent" }).select("name _id");
+
+    console.log("[getAgents] Agents found:", agents);
+
+    res.json(agents);
+  } catch (error) {
+    console.error("[getAgents] Error:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
