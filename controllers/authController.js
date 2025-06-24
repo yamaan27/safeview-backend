@@ -46,21 +46,73 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // 1. Check if user exists
+//     const user = await User.findOne({ email });
+//     if (!user) {
+//       return res.status(401).json({ message: "Invalid email or password" });
+//     }
+
+//     // 2. Compare password
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(401).json({ message: "Invalid email or password" });
+//     }
+
+//     // 3. Create JWT token
+//     const token = jwt.sign(
+//       { userId: user._id, role: user.role },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "7d" }
+//     );
+
+//     // 4. Send response
+//     res.status(200).json({
+//       message: "Login successful",
+//       token,
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//         location: {
+//           lat: user.location_lat,
+//           lng: user.location_lng,
+//         },
+//       },
+//     });
+//   } catch (err) {
+//     console.error("Login Error:", err.message);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("[LOGIN] Incoming login request for:", email);
 
     // 1. Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
+      console.log("[LOGIN] No user found with email:", email);
       return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    console.log("[LOGIN] User found:", user.email);
 
     // 2. Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("[LOGIN] Password mismatch");
       return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    console.log("[LOGIN] Password matched");
 
     // 3. Create JWT token
     const token = jwt.sign(
@@ -68,6 +120,8 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    console.log("[LOGIN] Token generated");
 
     // 4. Send response
     res.status(200).json({
@@ -79,13 +133,13 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         location: {
-          lat: user.location_lat,
-          lng: user.location_lng,
+          lat: user.location?.lat || null,
+          lng: user.location?.lng || null,
         },
       },
     });
   } catch (err) {
-    console.error("Login Error:", err.message);
+    console.error("[LOGIN ERROR]:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

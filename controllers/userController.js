@@ -10,16 +10,56 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+// exports.createUser = async (req, res) => {
+//   try {
+//     const { name, email, phone, role, location } = req.body;
+
+//     const missingFields = [];
+
+//     if (!name) missingFields.push("name");
+//     if (!email) missingFields.push("email");
+//     if (!phone) missingFields.push("phone");
+//     if (!role) missingFields.push("role");
+
+//     if (missingFields.length > 0) {
+//       return res.status(400).json({
+//         message: `Missing required field(s): ${missingFields.join(", ")}`,
+//       });
+//     }
+
+//     const userExists = await User.findOne({ email });
+//     if (userExists) {
+//       return res.status(400).json({ message: "User already exists" });
+//     }
+
+//     const newUser = new User({
+//       name,
+//       email,
+//       role,
+//       location,
+//       phone,
+//     });
+
+//     await newUser.save();
+//     res.status(201).json({ message: "User created", user: newUser });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+
+const bcrypt = require("bcryptjs");
+
 exports.createUser = async (req, res) => {
   try {
-    const { name, email, phone, role, location } = req.body;
+    const { name, email, phone, role, location, password } = req.body;
 
     const missingFields = [];
-
     if (!name) missingFields.push("name");
     if (!email) missingFields.push("email");
     if (!phone) missingFields.push("phone");
     if (!role) missingFields.push("role");
+    if (!password) missingFields.push("password");
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -32,20 +72,26 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = new User({
       name,
       email,
       role,
       location,
       phone,
+      password: hashedPassword,
     });
 
     await newUser.save();
     res.status(201).json({ message: "User created", user: newUser });
   } catch (error) {
+    console.error("Create user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // @desc Update a user
 exports.updateUser = async (req, res) => {
