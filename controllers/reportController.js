@@ -63,3 +63,44 @@ exports.getMonthlyReport = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Get summary for all agents with task counts by status
+exports.getAgentTaskSummary = async (req, res) => {
+  try {
+    const agents = await User.find({ role: "agent" }).select("name _id");
+
+    const summaries = await Promise.all(
+      agents.map(async (agent) => {
+        const tasks = await Task.find({ assignedTo: agent._id });
+
+        const counts = {
+          completed: 0,
+          pending: 0,
+          inProgress: 0,
+          cancelled: 0,
+        };
+
+        tasks.forEach((task) => {
+          const status = task.status;
+          if (status === "completed") counts.completed++;
+          else if (status === "pending") counts.pending++;
+          else if (status === "in-progress") counts.inProgress++;
+          else if (status === "cancelled") counts.cancelled++;
+        });
+
+        return {
+          agentId: agent._id,
+          name: agent.name,
+          ...counts,
+          total: tasks.length,
+        };
+      })
+    );
+
+    res.json(summaries);
+  } catch (error) {
+    console.error("[getAgentTaskSummary] Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

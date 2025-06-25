@@ -1,6 +1,45 @@
 const Task = require("../models/Task");
 
 // @desc Create a new task
+// exports.createTask = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       description,
+//       location,
+//       assignedTo,
+//       startTime,
+//       endTime,
+//       dueDate,
+//       proof,
+//       status,
+//       createdBy,
+//     } = req.body;
+
+//     if (!title) {
+//       return res.status(400).json({ message: "Title is required" });
+//     }
+
+//     const task = new Task({
+//       title,
+//       description,
+//       location,
+//       assignedTo,
+//       startTime,
+//       endTime,
+//       dueDate,
+//       proof,
+//       status,
+//       createdBy,
+//     });
+
+//     const savedTask = await task.save();
+//     res.status(201).json({ message: "Task created", task: savedTask });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 exports.createTask = async (req, res) => {
   try {
     const {
@@ -20,7 +59,19 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ message: "Title is required" });
     }
 
+    // Fetch the latest task to get the highest task number
+    const lastTask = await Task.findOne().sort({ createdAt: -1 }).limit(1);
+
+    let nextId = 101; // default starting point
+    if (lastTask && lastTask.taskId) {
+      const lastNumber = parseInt(lastTask.taskId.split("-")[1]);
+      if (!isNaN(lastNumber)) {
+        nextId = lastNumber + 1;
+      }
+    }
+
     const task = new Task({
+      taskId: `T-${nextId}`,
       title,
       description,
       location,
@@ -39,6 +90,7 @@ exports.createTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // @desc Get all tasks
 exports.getTasks = async (req, res) => {
