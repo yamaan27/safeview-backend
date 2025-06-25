@@ -93,14 +93,47 @@ exports.createTask = async (req, res) => {
 
 
 // @desc Get all tasks
+// exports.getTasks = async (req, res) => {
+//   try {
+//     const tasks = await Task.find().populate("assignedTo", "name email");
+//     res.status(200).json(tasks);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().populate("assignedTo", "name email");
+    const { filter } = req.query;
+
+    let query = {};
+
+    if (filter) {
+      switch (filter.toLowerCase()) {
+        case "active":
+          // Active includes "pending" and "in_progress"
+          query.status = { $in: [ "in_progress"] };
+          break;
+        case "pending":
+        case "in_progress":
+        case "completed":
+        case "cancelled":
+          // Exact match for specific statuses
+          query.status = filter.toLowerCase();
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid filter value" });
+      }
+    }
+
+    const tasks = await Task.find(query).populate("assignedTo", "name email");
+
     res.status(200).json(tasks);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // @desc Update a task
 exports.updateTask = async (req, res) => {
