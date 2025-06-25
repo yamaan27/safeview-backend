@@ -155,6 +155,26 @@ exports.updateTask = async (req, res) => {
   }
 };
 
+exports.updateTaskByTaskId = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const updates = req.body;
+
+    const updatedTask = await Task.findOneAndUpdate({ taskId }, updates, {
+      new: true,
+    });
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json({ message: "Task updated", task: updatedTask });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 // @desc Assign task to a user
 exports.assignTask = async (req, res) => {
   try {
@@ -182,17 +202,78 @@ exports.assignTask = async (req, res) => {
 };
 
 // @desc Get a task by ID
-exports.getTaskById = async (req, res) => {
-    try {
-      const task = await Task.findById(req.params.id).populate("assignedTo", "name email");
-      if (!task) {
-        return res.status(404).json({ message: "Task not found" });
-      }
-      res.json(task);
-    } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+// exports.getTaskById = async (req, res) => {
+//     try {
+//       const task = await Task.findById(req.params.id).populate("assignedTo", "name email");
+//       if (!task) {
+//         return res.status(404).json({ message: "Task not found" });
+//       }
+//       res.json(task);
+//     } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//     }
+//   };
+
+// @desc Get all tasks assigned to a user
+// exports.getTasksByUser = async (req, res) => {
+//   try {
+//     const userId = req.params.userId;
+
+//     const tasks = await Task.find({ assignedTo: userId }).populate("assignedTo", "name email");
+
+//     if (!tasks || tasks.length === 0) {
+//       return res.status(404).json({ message: "No tasks assigned to this user" });
+//     }
+
+//     res.status(200).json(tasks);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+exports.getTasksByUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { filter } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
     }
-  };
+
+    let query = { assignedTo: userId };
+
+    if (filter) {
+      switch (filter.toLowerCase()) {
+        case "active":
+          // Active = pending + in_progress
+          query.status = { $in: ["pending", "in_progress"] };
+          break;
+        case "pending":
+        case "in_progress":
+        case "completed":
+        case "cancelled":
+          query.status = filter.toLowerCase();
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid filter value" });
+      }
+    }
+
+    const tasks = await Task.find(query).populate("assignedTo", "name email");
+
+    if (!tasks || tasks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No tasks assigned to this user" });
+    }
+
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
   
   // @desc Delete a task
   exports.deleteTask = async (req, res) => {
@@ -207,3 +288,19 @@ exports.getTaskById = async (req, res) => {
     }
   };
   
+  // @desc Get a task by custom taskId (e.g., T-101)
+exports.getTaskByTaskId = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const task = await Task.findOne({ taskId }).populate("assignedTo", "name email");
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found with taskId: " + taskId });
+    }
+
+    res.status(200).json(task);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
