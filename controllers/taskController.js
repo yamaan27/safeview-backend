@@ -136,10 +136,40 @@ exports.getTasks = async (req, res) => {
 
 
 // @desc Update a task
+// exports.updateTask = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updates = req.body;
+
+//     const updatedTask = await Task.findByIdAndUpdate(id, updates, {
+//       new: true,
+//     });
+
+//     if (!updatedTask) {
+//       return res.status(404).json({ message: "Task not found" });
+//     }
+
+//     res.status(200).json({ message: "Task updated", task: updatedTask });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
 exports.updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // Enforce reject_reason when status is cancelled
+    if (updates.status === "cancelled" && !updates.reject_reason) {
+      return res
+        .status(400)
+        .json({ message: "Reject reason is required when task is cancelled" });
+    }
+
+    // Clear reject_reason if status is not cancelled
+    if (updates.status !== "cancelled") {
+      updates.reject_reason = null;
+    }
 
     const updatedTask = await Task.findByIdAndUpdate(id, updates, {
       new: true,
@@ -154,6 +184,7 @@ exports.updateTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 exports.updateTaskByTaskId = async (req, res) => {
   try {

@@ -10,9 +10,17 @@ const taskSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String },
 
+    // location: {
+    //   lat: { type: Number },
+    //   lng: { type: Number },
+    // },
     location: {
-      lat: { type: Number },
-      lng: { type: Number },
+      type: Object, // Accepts any object shape
+      default: {}, // Optional: default empty object
+    },
+    reject_reason: {
+      type: String,
+      default: null,
     },
 
     assignedTo: {

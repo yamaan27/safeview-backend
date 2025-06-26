@@ -1,5 +1,7 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
+const mongoose = require("mongoose");
+
 
 // Get total tasks, completed tasks, pending tasks
 exports.getSummaryReport = async (req, res) => {
@@ -16,26 +18,124 @@ exports.getSummaryReport = async (req, res) => {
 };
 
 // Get agent-wise task stats
+// exports.getAgentReport = async (req, res) => {
+//   try {
+//     const agentId = req.params.agentId;
+
+//     const tasks = await Task.find({ assignedTo: agentId });
+
+//     const completed = tasks.filter((t) => t.status === "completed").length;
+//     const pending = tasks.filter((t) => t.status === "pending").length;
+
+//     res.json({
+//       agentId,
+//       total: tasks.length,
+//       completed,
+//       pending,
+//     });
+//   } catch (error) {
+//     console.error("[getAgentReport]", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+// exports.getAgentReport = async (req, res) => {
+//   try {
+//     const agentId = req.params.agentId;
+
+//     const tasks = await Task.find({ assignedTo: agentId });
+
+//     const summary = {
+//       agentId,
+//       total: tasks.length,
+//       completed: 0,
+//       pending: 0,
+//       in_progress: 0,
+//       cancelled: 0,
+//     };
+
+//     tasks.forEach((task) => {
+//       switch (task.status) {
+//         case "completed":
+//           summary.completed++;
+//           break;
+//         case "pending":
+//           summary.pending++;
+//           break;
+//         case "in_progress":
+//           summary.in_progress++;
+//           break;
+//         case "cancelled":
+//           summary.cancelled++;
+//           break;
+//       }
+//     });
+
+//     res.json(summary);
+//   } catch (error) {
+//     console.error("[getAgentReport]", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 exports.getAgentReport = async (req, res) => {
   try {
     const agentId = req.params.agentId;
 
-    const tasks = await Task.find({ assignedTo: agentId });
+    const pipeline = [
+      {
+        $match: {
+          assignedTo: new mongoose.Types.ObjectId(agentId),
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          total: { $sum: 1 },
+          completed: {
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+          },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+          },
+          in_progress: {
+            $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] },
+          },
+          cancelled: {
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+          },
+        },
+      },
+    ];
 
-    const completed = tasks.filter((t) => t.status === "completed").length;
-    const pending = tasks.filter((t) => t.status === "pending").length;
+    const results = await Task.aggregate(pipeline);
+
+    // Ensure all 12 months are included
+    const fullReport = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const found = results.find((r) => r._id === month);
+
+      return {
+        month, // number 1-12
+        total: found?.total || 0,
+        completed: found?.completed || 0,
+        pending: found?.pending || 0,
+        in_progress: found?.in_progress || 0,
+        cancelled: found?.cancelled || 0,
+      };
+    });
 
     res.json({
       agentId,
-      total: tasks.length,
-      completed,
-      pending,
+      report: fullReport,
     });
   } catch (error) {
     console.error("[getAgentReport]", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
 // Monthly report (last 6 months)
 exports.getMonthlyReport = async (req, res) => {
@@ -104,3 +204,44 @@ exports.getAgentTaskSummary = async (req, res) => {
   }
 };
 
+
+
+// Get summary for currently logged-in agent
+exports.getMyReport = async (req, res) => {
+  try {
+    const agentId = req.user._id; // Assumes auth middleware adds user to req
+    const tasks = await Task.find({ assignedTo: agentId });
+
+    const summary = {
+      total: tasks.length,
+      completed: 0,
+      pending: 0,
+      inProgress: 0,
+      cancelled: 0,
+    };
+
+    tasks.forEach((task) => {
+      switch (task.status) {
+        case "completed":
+          summary.completed++;
+          break;
+        case "pending":
+          summary.pending++;
+          break;
+        case "in_progress":
+          summary.inProgress++;
+          break;
+        case "cancelled":
+          summary.cancelled++;
+          break;
+        default:
+          break;
+      }
+    });
+
+    res.json(summary);
+  } catch (error) {
+    console.error("[getMyReport]", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
