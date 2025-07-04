@@ -5,6 +5,7 @@ const pairingController = require("../controllers/pairingController");
 router.post("/generate-code", pairingController.generateCode);
 router.post("/verify-code", pairingController.verifyCode);
 router.get("/status/:deviceId", pairingController.getStatus);
+router.get("/status2/:deviceId", pairingController.getStatus2);
 router.delete("/unlink/:deviceId", pairingController.unlink);
 
 // Simple health check route

@@ -31,6 +31,7 @@ exports.verifyCode = async (req, res) => {
 };
 
 exports.getStatus = async (req, res) => {
+
   const { deviceId } = req.params;
 
   const pairing = await Pairing.findOne({
@@ -42,6 +43,40 @@ exports.getStatus = async (req, res) => {
   if (pairing.childDeviceId === deviceId) return res.json({ role: "child" });
   if (pairing.parentDeviceId === deviceId) return res.json({ role: "parent" });
 };
+
+exports.getStatus2 = async (req, res) => {
+  const { deviceId } = req.params;
+
+  const checkInterval = 1000; // 1 second
+  const timeout = 30000; // 30 seconds
+  let elapsed = 0;
+
+  const checkStatus = async () => {
+    const pairing = await Pairing.findOne({
+      $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+    });
+
+    if (pairing) {
+      if (pairing.childDeviceId === deviceId && pairing.isLinked) {
+        return res.json({ role: "child" });
+      }
+      if (pairing.parentDeviceId === deviceId) {
+        return res.json({ role: "parent" });
+      }
+    }
+
+    // Timeout reached
+    if (elapsed >= timeout) {
+      return res.json({ role: "unlinked" });
+    }
+
+    elapsed += checkInterval;
+    setTimeout(checkStatus, checkInterval);
+  };
+
+  checkStatus();
+};
+
 
 exports.unlink = async (req, res) => {
   const { deviceId } = req.params;
