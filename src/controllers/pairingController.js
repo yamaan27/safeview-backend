@@ -31,7 +31,6 @@ exports.verifyCode = async (req, res) => {
 };
 
 exports.getStatus = async (req, res) => {
-
   const { deviceId } = req.params;
 
   const pairing = await Pairing.findOne({
@@ -40,9 +39,18 @@ exports.getStatus = async (req, res) => {
 
   if (!pairing) return res.json({ role: "unlinked" });
 
-  if (pairing.childDeviceId === deviceId) return res.json({ role: "child" });
-  if (pairing.parentDeviceId === deviceId) return res.json({ role: "parent" });
+  if (pairing.childDeviceId === deviceId) {
+    return res.json({
+      role: "child",
+      isVerified: pairing.isLinked === true,
+    });
+  }
+
+  if (pairing.parentDeviceId === deviceId) {
+    return res.json({ role: "parent" });
+  }
 };
+
 
 exports.getStatus2 = async (req, res) => {
   const { deviceId } = req.params;
@@ -86,4 +94,33 @@ exports.unlink = async (req, res) => {
   });
 
   res.json({ message: "Unlinked successfully" });
+};
+
+
+exports.getDeviceInfo = async (req, res) => {
+  const { deviceId } = req.params;
+
+  const pairing = await Pairing.findOne({
+    $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+  });
+
+  if (!pairing) {
+    return res.json({ deviceId, role: "unlinked" });
+  }
+
+  if (pairing.childDeviceId === deviceId) {
+    return res.json({
+      deviceId,
+      role: "child",
+      pairedWith: pairing.parentDeviceId || null,
+    });
+  }
+
+  if (pairing.parentDeviceId === deviceId) {
+    return res.json({
+      deviceId,
+      role: "parent",
+      pairedWith: pairing.childDeviceId,
+    });
+  }
 };
