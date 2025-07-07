@@ -1,12 +1,14 @@
 const ContentSettings = require("../models/ContentSettings");
 
+
+
 // exports.updateSettings = async (req, res) => {
 //   const {
 //     childDeviceId,
 //     allowSearch,
 //     allowAutoplay,
 //     blockedChannels,
-//     blockedVideos,
+//     blockUnsafeVideos,
 //     screenTimeLimitMins,
 //     isLocked,
 //   } = req.body;
@@ -17,7 +19,7 @@ const ContentSettings = require("../models/ContentSettings");
 //       allowSearch,
 //       allowAutoplay,
 //       blockedChannels,
-//       blockedVideos,
+//       blockUnsafeVideos,
 //       screenTimeLimitMins,
 //       isLocked,
 //       updatedAt: new Date(),
@@ -28,12 +30,13 @@ const ContentSettings = require("../models/ContentSettings");
 //   res.json({ message: "Settings saved", settings: updated });
 // };
 
+
 exports.updateSettings = async (req, res) => {
   const {
     childDeviceId,
     allowSearch,
     allowAutoplay,
-    blockedChannels,
+    blockedCategories, // ✅ New
     blockUnsafeVideos,
     screenTimeLimitMins,
     isLocked,
@@ -44,7 +47,7 @@ exports.updateSettings = async (req, res) => {
     {
       allowSearch,
       allowAutoplay,
-      blockedChannels,
+      blockedCategories, // ✅ Save to DB
       blockUnsafeVideos,
       screenTimeLimitMins,
       isLocked,
@@ -55,7 +58,6 @@ exports.updateSettings = async (req, res) => {
 
   res.json({ message: "Settings saved", settings: updated });
 };
-
 
 exports.getSettings = async (req, res) => {
   const { childDeviceId } = req.params;
