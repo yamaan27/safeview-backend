@@ -50,9 +50,9 @@ exports.getLimitStatus = async (req, res) => {
   const remaining = record.dailyLimit - record.totalWatchedToday;
 
   res.json({
-    dailyLimit: record.dailyLimit,
-    totalWatchedToday: record.totalWatchedToday,
-    remainingTime: remaining > 0 ? remaining : 0,
+    dailyLimitMins: Math.round(record.dailyLimit / 60),
+    totalWatchedMins: Math.round(record.totalWatchedToday / 60),
+    remainingTimeMins: Math.max(0, Math.round(remaining / 60)),
     limitReached: remaining <= 0,
   });
 };

@@ -92,6 +92,198 @@
 // };
 
 
+// const ContentSettings = require("../models/ContentSettings");
+// const axios = require("axios");
+
+// const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
+// const UNSAFE_KEYWORDS = [
+//   "gun",
+//   "kill",
+//   "blood",
+//   "challenge",
+//   "suicide",
+//   "fight",
+//   "weapon",
+//   "murder",
+//   "horror",
+// ];
+
+// // exports.searchVideos = async (req, res) => {
+// //   let {
+// //     query = "", // no default filter — open search
+// //     maxResults = 10,
+// //     childDeviceId,
+// //   } = req.query;
+
+// //   let isLocked = false;
+
+// //   // Optional: Set a random popular query if completely empty
+// //   if (!query.trim()) {
+// //     query = "trending videos";
+// //   }
+
+// //   try {
+// //     const response = await axios.get(
+// //       "https://www.googleapis.com/youtube/v3/search",
+// //       {
+// //         params: {
+// //           part: "snippet",
+// //           q: query,
+// //           key: YOUTUBE_API_KEY,
+// //           type: "video",
+// //           maxResults,
+// //           // Removed: safeSearch: "strict"
+// //         },
+// //       }
+// //     );
+
+// //     let videos = response.data.items.map((item) => ({
+// //       videoId: item.id.videoId,
+// //       title: item.snippet.title,
+// //       description: item.snippet.description,
+// //       thumbnail:
+// //         item.snippet.thumbnails.high?.url ||
+// //         item.snippet.thumbnails.medium?.url ||
+// //         item.snippet.thumbnails.default.url,
+// //       channel: item.snippet.channelTitle,
+// //       categoryId: item.snippet.categoryId || null,
+// //     }));
+
+// //     if (childDeviceId) {
+// //       const settings = await ContentSettings.findOne({ childDeviceId });
+
+// //       if (settings) {
+// //         const {
+// //           blockedCategories = [],
+// //           blockUnsafeVideos: shouldBlock,
+// //           isLocked: locked,
+// //         } = settings;
+
+// //         isLocked = locked;
+
+// //         // Block videos by category ID
+// //         if (blockedCategories.length > 0) {
+// //           videos = videos.filter(
+// //             (v) => !blockedCategories.includes(v.categoryId)
+// //           );
+// //         }
+
+// //         // Filter unsafe keyword content
+// //         if (shouldBlock) {
+// //           videos = videos.filter((v) => {
+// //             const text = (v.title + " " + v.description).toLowerCase();
+// //             return !UNSAFE_KEYWORDS.some((kw) => text.includes(kw));
+// //           });
+// //         }
+// //       }
+// //     }
+
+// //     res.json({ isLocked, videos });
+// //   } catch (error) {
+// //     console.error("YouTube fetch error:", error.message);
+// //     res.status(500).json({ error: "Failed to fetch videos" });
+// //   }
+// // };
+
+
+
+// exports.searchVideos = async (req, res) => {
+//   let {
+//     query = "", // no default filter — open search
+//     maxResults = 10,
+//     childDeviceId,
+//   } = req.query;
+
+//   let isLocked = false;
+
+//   if (!query.trim()) {
+//     query = "trending videos";
+//   }
+
+//   try {
+//     console.log(`🧒 Device ID: ${childDeviceId || "none"}`);
+//     console.log(`📦 Params: { query: '${query}', maxResults: ${maxResults} }`);
+
+//     const response = await axios.get(
+//       "https://www.googleapis.com/youtube/v3/search",
+//       {
+//         params: {
+//           part: "snippet",
+//           q: query,
+//           key: YOUTUBE_API_KEY,
+//           type: "video",
+//           maxResults,
+//         },
+//       }
+//     );
+
+//     let videos = response.data.items.map((item) => ({
+//       videoId: item.id.videoId,
+//       title: item.snippet.title,
+//       description: item.snippet.description,
+//       thumbnail:
+//         item.snippet.thumbnails.high?.url ||
+//         item.snippet.thumbnails.medium?.url ||
+//         item.snippet.thumbnails.default.url,
+//       channel: item.snippet.channelTitle,
+//       categoryId: item.snippet.categoryId || null,
+//     }));
+
+//     if (childDeviceId) {
+//       const settings = await ContentSettings.findOne({ childDeviceId });
+
+//       if (settings) {
+//         const {
+//           blockedCategories = [],
+//           blockUnsafeVideos: shouldBlock,
+//           isLocked: locked,
+//         } = settings;
+
+//         isLocked = locked;
+
+//         console.log("🔒 isLocked:", isLocked);
+//         console.log("🚫 Blocked Categories:", blockedCategories);
+//         console.log("☢️ Block Unsafe Videos:", shouldBlock);
+
+//         // Block by category
+//         if (blockedCategories.length > 0) {
+//           const beforeCount = videos.length;
+//           videos = videos.filter(
+//             (v) => !blockedCategories.includes(v.categoryId)
+//           );
+//           console.log(
+//             `✅ Filtered ${beforeCount - videos.length} videos by category`
+//           );
+//         }
+
+//         // Block unsafe keywords
+//         if (shouldBlock) {
+//           const beforeCount = videos.length;
+//           videos = videos.filter((v) => {
+//             const text = (v.title + " " + v.description).toLowerCase();
+//             return !UNSAFE_KEYWORDS.some((kw) => text.includes(kw));
+//           });
+//           console.log(
+//             `✅ Filtered ${
+//               beforeCount - videos.length
+//             } videos by unsafe keywords`
+//           );
+//         }
+//       } else {
+//         console.log("⚠️ No content settings found for device");
+//       }
+//     }
+
+//     res.json({ isLocked, videos });
+//   } catch (error) {
+//     console.error("❌ YouTube fetch error:", error.message);
+//     res.status(500).json({ error: "Failed to fetch videos" });
+//   }
+// };
+
+
+
 const ContentSettings = require("../models/ContentSettings");
 const axios = require("axios");
 
@@ -110,21 +302,20 @@ const UNSAFE_KEYWORDS = [
 ];
 
 exports.searchVideos = async (req, res) => {
-  let {
-    query = "", // no default filter — open search
-    maxResults = 10,
-    childDeviceId,
-  } = req.query;
+  let { query = "", maxResults = 10, childDeviceId } = req.query;
 
   let isLocked = false;
 
-  // Optional: Set a random popular query if completely empty
   if (!query.trim()) {
     query = "trending videos";
   }
 
   try {
-    const response = await axios.get(
+    console.log(`🧒 Device ID: ${childDeviceId || "none"}`);
+    console.log(`📦 Params: { query: '${query}', maxResults: ${maxResults} }`);
+
+    // First: Search videos
+    const searchResponse = await axios.get(
       "https://www.googleapis.com/youtube/v3/search",
       {
         params: {
@@ -133,13 +324,28 @@ exports.searchVideos = async (req, res) => {
           key: YOUTUBE_API_KEY,
           type: "video",
           maxResults,
-          // Removed: safeSearch: "strict"
         },
       }
     );
 
-    let videos = response.data.items.map((item) => ({
-      videoId: item.id.videoId,
+    const searchItems = searchResponse.data.items;
+
+    const videoIds = searchItems.map((item) => item.id.videoId).join(",");
+
+    // Second: Get video details (with categoryId)
+    const videoResponse = await axios.get(
+      "https://www.googleapis.com/youtube/v3/videos",
+      {
+        params: {
+          part: "snippet",
+          id: videoIds,
+          key: YOUTUBE_API_KEY,
+        },
+      }
+    );
+
+    let videos = videoResponse.data.items.map((item) => ({
+      videoId: item.id,
       title: item.snippet.title,
       description: item.snippet.description,
       thumbnail:
@@ -147,9 +353,10 @@ exports.searchVideos = async (req, res) => {
         item.snippet.thumbnails.medium?.url ||
         item.snippet.thumbnails.default.url,
       channel: item.snippet.channelTitle,
-      categoryId: item.snippet.categoryId || null,
+      categoryId: item.snippet.categoryId,
     }));
 
+    // Apply content filtering
     if (childDeviceId) {
       const settings = await ContentSettings.findOne({ childDeviceId });
 
@@ -161,27 +368,42 @@ exports.searchVideos = async (req, res) => {
         } = settings;
 
         isLocked = locked;
+        console.log("🔒 isLocked:", isLocked);
+        console.log("🚫 Blocked Categories:", blockedCategories);
+        console.log("☢️ Block Unsafe Videos:", shouldBlock);
 
-        // Block videos by category ID
+        // Block by categoryId
         if (blockedCategories.length > 0) {
+          const beforeCount = videos.length;
           videos = videos.filter(
             (v) => !blockedCategories.includes(v.categoryId)
           );
+          console.log(
+            `✅ Filtered ${beforeCount - videos.length} videos by category`
+          );
         }
 
-        // Filter unsafe keyword content
+        // Block unsafe keyword content
         if (shouldBlock) {
+          const beforeCount = videos.length;
           videos = videos.filter((v) => {
             const text = (v.title + " " + v.description).toLowerCase();
             return !UNSAFE_KEYWORDS.some((kw) => text.includes(kw));
           });
+          console.log(
+            `✅ Filtered ${
+              beforeCount - videos.length
+            } videos by unsafe keywords`
+          );
         }
+      } else {
+        console.log("⚠️ No content settings found for this device.");
       }
     }
 
     res.json({ isLocked, videos });
   } catch (error) {
-    console.error("YouTube fetch error:", error.message);
+    console.error("❌ YouTube fetch error:", error.message);
     res.status(500).json({ error: "Failed to fetch videos" });
   }
 };
