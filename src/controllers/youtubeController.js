@@ -290,16 +290,107 @@ const axios = require("axios");
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 const UNSAFE_KEYWORDS = [
+  // Violence & Gore
   "gun",
   "kill",
   "blood",
-  "challenge",
-  "suicide",
-  "fight",
-  "weapon",
   "murder",
+  "weapon",
+  "knife",
+  "grenade",
+  "bomb",
+  "fight",
+  "behead",
+  "assault",
+  "death",
+  "dead",
+  "shooting",
+  "sniper",
+
+  // Suicide, self-harm & mental health concerns
+  "suicide",
+  "self harm",
+  "cutting",
+  "depression",
+  "anxiety",
+  "die",
+  "hang",
+  "overdose",
+
+  // Horror & disturbing content
   "horror",
+  "ghost",
+  "paranormal",
+  "zombie",
+  "satan",
+  "demon",
+  "curse",
+  "witch",
+  "ritual",
+  "creepypasta",
+  "jumpscare",
+  "killer clown",
+  "bloodbath",
+
+  // Drugs, alcohol & substance abuse
+  "drug",
+  "alcohol",
+  "weed",
+  "cocaine",
+  "heroin",
+  "meth",
+  "vape",
+  "smoking",
+  "e-cigarette",
+
+  // Sexual, adult & inappropriate
+  "sex",
+  "nude",
+  "naked",
+  "porn",
+  "erotic",
+  "fetish",
+  "boobs",
+  "strip",
+  "twerk",
+  "xxx",
+
+  // Harmful trends & challenges
+  "challenge",
+  "blackout challenge",
+  "tide pod",
+  "choking game",
+  "momo",
+  "blue whale",
+
+  // Bullying, harassment, hate speech
+  "hate",
+  "racist",
+  "sexist",
+  "bully",
+  "abuse",
+  "violence",
+  "threat",
+
+  // Gambling, scams
+  "casino",
+  "betting",
+  "lottery",
+  "scam",
+  "hack",
+  "cheat",
+
+  // Misc
+  "robbery",
+  "jail",
+  "prison",
+  "arrest",
+  "terrorist",
+  "explosion",
+  "kidnap",
+  "abduction",
 ];
+
 
 exports.searchVideos = async (req, res) => {
   let { query = "", maxResults = 10, childDeviceId } = req.query;
