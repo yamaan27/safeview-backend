@@ -22,15 +22,18 @@ const contentSettingsSchema = new mongoose.Schema({
 
   allowSearch: { type: Boolean, default: true },
   allowAutoplay: { type: Boolean, default: true },
-
-  blockedCategories: [String], // ✅ NEW: Block whole categories like "Music", "Gaming"
-
+  blockedCategories: [String],
   blockUnsafeVideos: { type: Boolean, default: false },
   screenTimeLimitMins: { type: Number, default: 60 },
   isLocked: { type: Boolean, default: false },
-
+  ageGroup: {
+    type: String,
+    enum: ["kid", "tween", "teen", "general"], // kid: <7, tween: 8–12, teen: 13–17
+    default: "teen",
+  },
   updatedAt: { type: Date, default: Date.now },
 });
+
 
 
 

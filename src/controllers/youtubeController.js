@@ -292,6 +292,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const UNSAFE_KEYWORDS = [
   // Violence & Gore
   "gun",
+  "pistol",
   "kill",
   "blood",
   "murder",
@@ -477,16 +478,41 @@ exports.searchVideos = async (req, res) => {
         // Block unsafe keyword content
         if (shouldBlock) {
           const beforeCount = videos.length;
+
+          const SAFE_CATEGORY_IDS = [
+            "1", // Film & Animation (needs manual filtering)
+            "2", // Autos & Vehicles
+            "10", // Music
+            "15", // Pets & Animals
+            "17", // Sports
+            "20", // Gaming
+            "22", // People & Blogs
+            "23", // Comedy
+            "24", // Entertainment
+            "26", // Howto & Style
+            "27", // Education ✅
+            "28", // Science & Technology ✅
+            "29", // Nonprofits & Activism
+          ];
+
           videos = videos.filter((v) => {
             const text = (v.title + " " + v.description).toLowerCase();
-            return !UNSAFE_KEYWORDS.some((kw) => text.includes(kw));
+
+            const isSafeCategory = SAFE_CATEGORY_IDS.includes(v.categoryId);
+            const hasUnsafeKeywords = UNSAFE_KEYWORDS.some((kw) =>
+              text.includes(kw)
+            );
+
+            return isSafeCategory && !hasUnsafeKeywords;
           });
+
           console.log(
             `✅ Filtered ${
               beforeCount - videos.length
-            } videos by unsafe keywords`
+            } videos for child-safe content (< 15 yrs)`
           );
         }
+        
       } else {
         console.log("⚠️ No content settings found for this device.");
       }

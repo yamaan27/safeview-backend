@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Screen Time Limit Listener</title>
+</head>
+<body>
+  <h2>🧒 Screen Time Limit Listener</h2>
+  <div id="status">Connecting...</div>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io("http://localhost:3000"); // Change if your backend runs on a different port
+
+    const childDeviceId = "child-child-q9878";
+
+    socket.on("connect", () => {
+      document.getElementById("status").innerText = "✅ Connected to server";
+      console.log("Connected to server");
+      socket.emit("join", childDeviceId);
+    });
+
+    socket.on("limitReached", (data) => {
+      console.log("⏰ Limit Reached:", data.message);
+      alert("⏰ " + data.message);
+      document.getElementById("status").innerText = "⛔ Limit Reached!";
+    });
+  </script>
+</body>
+</html>

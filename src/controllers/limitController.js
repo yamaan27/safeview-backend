@@ -15,6 +15,8 @@ exports.updateLimit = async (req, res) => {
 exports.trackWatchTime = async (req, res) => {
   const { childDeviceId, duration } = req.body;
 
+  const io = req.app.get("io"); // ✅ Get socket.io instance
+
   const record =
     (await ScreenLimit.findOne({ childDeviceId })) ||
     new ScreenLimit({ childDeviceId });
@@ -32,13 +34,24 @@ exports.trackWatchTime = async (req, res) => {
 
   const remaining = record.dailyLimit - record.totalWatchedToday;
 
+  const limitReached = remaining <= 0;
+
+  // ✅ Emit real-time event when limit reached
+  if (limitReached) {
+    io.to(childDeviceId).emit("limitReached", {
+      message: "Screen time limit reached",
+      childDeviceId,
+    });
+  }
+
   res.json({
     message: "Watch time updated",
     totalWatchedToday: record.totalWatchedToday,
     remainingTime: remaining > 0 ? remaining : 0,
-    limitReached: remaining <= 0,
+    limitReached,
   });
 };
+
 
 exports.getLimitStatus = async (req, res) => {
   const { childDeviceId } = req.params;
