@@ -308,7 +308,7 @@ const UNSAFE_KEYWORDS = [
   "shooting",
   "sniper",
 
-  // Suicide, self-harm & mental health concerns
+  // Suicide, self-harm & mental health
   "suicide",
   "self harm",
   "cutting",
@@ -318,7 +318,7 @@ const UNSAFE_KEYWORDS = [
   "hang",
   "overdose",
 
-  // Horror & disturbing content
+  // Horror & disturbing
   "horror",
   "ghost",
   "paranormal",
@@ -333,7 +333,7 @@ const UNSAFE_KEYWORDS = [
   "killer clown",
   "bloodbath",
 
-  // Drugs, alcohol & substance abuse
+  // Drugs, alcohol, abuse
   "drug",
   "alcohol",
   "weed",
@@ -355,8 +355,16 @@ const UNSAFE_KEYWORDS = [
   "strip",
   "twerk",
   "xxx",
+  "kiss",
+  "romance",
+  "romantic",
+  "hot",
+  "suhagraat",
+  "ullu",
+  "web series",
+  "bhabhi",
 
-  // Harmful trends & challenges
+  // Harmful trends
   "challenge",
   "blackout challenge",
   "tide pod",
@@ -364,7 +372,7 @@ const UNSAFE_KEYWORDS = [
   "momo",
   "blue whale",
 
-  // Bullying, harassment, hate speech
+  // Bullying, hate speech
   "hate",
   "racist",
   "sexist",
@@ -373,7 +381,7 @@ const UNSAFE_KEYWORDS = [
   "violence",
   "threat",
 
-  // Gambling, scams
+  // Gambling & scams
   "casino",
   "betting",
   "lottery",
@@ -381,7 +389,7 @@ const UNSAFE_KEYWORDS = [
   "hack",
   "cheat",
 
-  // Misc
+  // Crime
   "robbery",
   "jail",
   "prison",
@@ -391,6 +399,7 @@ const UNSAFE_KEYWORDS = [
   "kidnap",
   "abduction",
 ];
+
 
 
 exports.searchVideos = async (req, res) => {
@@ -476,34 +485,82 @@ exports.searchVideos = async (req, res) => {
         }
 
         // Block unsafe keyword content
+        // if (shouldBlock) {
+        //   const beforeCount = videos.length;
+
+        //   const SAFE_CATEGORY_IDS = [
+        //     "1", // Film & Animation (needs manual filtering)
+        //     "2", // Autos & Vehicles
+        //     "10", // Music
+        //     "15", // Pets & Animals
+        //     "17", // Sports
+        //     "20", // Gaming
+        //     "22", // People & Blogs
+        //     "23", // Comedy
+        //     "24", // Entertainment
+        //     "26", // Howto & Style
+        //     "27", // Education ✅
+        //     "28", // Science & Technology ✅
+        //     "29", // Nonprofits & Activism
+        //   ];
+
+        //   videos = videos.filter((v) => {
+        //     const text = (v.title + " " + v.description).toLowerCase();
+
+        //     const isSafeCategory = SAFE_CATEGORY_IDS.includes(v.categoryId);
+        //     const hasUnsafeKeywords = UNSAFE_KEYWORDS.some((kw) =>
+        //       text.includes(kw)
+        //     );
+
+        //     return isSafeCategory && !hasUnsafeKeywords;
+        //   });
+
+        //   console.log(
+        //     `✅ Filtered ${
+        //       beforeCount - videos.length
+        //     } videos for child-safe content (< 15 yrs)`
+        //   );
+        // }
+        // Block unsafe keyword content
         if (shouldBlock) {
           const beforeCount = videos.length;
 
           const SAFE_CATEGORY_IDS = [
-            "1", // Film & Animation (needs manual filtering)
-            "2", // Autos & Vehicles
-            "10", // Music
-            "15", // Pets & Animals
-            "17", // Sports
-            "20", // Gaming
-            "22", // People & Blogs
-            "23", // Comedy
-            "24", // Entertainment
-            "26", // Howto & Style
-            "27", // Education ✅
-            "28", // Science & Technology ✅
-            "29", // Nonprofits & Activism
+            "1",
+            "2",
+            "10",
+            "15",
+            "17",
+            "20",
+            "22",
+            "23",
+            "24",
+            "26",
+            "27",
+            "28",
+            "29",
           ];
 
-          videos = videos.filter((v) => {
-            const text = (v.title + " " + v.description).toLowerCase();
+          const normalizeText = (text) => {
+            return text
+              .toLowerCase()
+              .replace(/[^a-z0-9\s]/g, " ") // Remove non-alphanumerics
+              .replace(/\s+/g, " ") // Normalize spaces
+              .trim();
+          };
 
-            const isSafeCategory = SAFE_CATEGORY_IDS.includes(v.categoryId);
-            const hasUnsafeKeywords = UNSAFE_KEYWORDS.some((kw) =>
-              text.includes(kw)
+          const isUnsafe = (text) => {
+            const cleaned = normalizeText(text);
+            return UNSAFE_KEYWORDS.some((kw) =>
+              cleaned.includes(kw.toLowerCase())
             );
+          };
 
-            return isSafeCategory && !hasUnsafeKeywords;
+          videos = videos.filter((v) => {
+            const text = `${v.title} ${v.description}`;
+            const isSafeCategory = SAFE_CATEGORY_IDS.includes(v.categoryId);
+            const unsafe = isUnsafe(text);
+            return isSafeCategory && !unsafe;
           });
 
           console.log(
