@@ -124,11 +124,11 @@ exports.updateSettings = async (req, res) => {
   // Countdown logger
   const interval = setInterval(() => {
     secondsRemaining--;
-    console.log(
-      `⏳ [${childDeviceId}] Time left: ${Math.floor(secondsRemaining / 60)}m ${
-        secondsRemaining % 60
-      }s`
-    );
+    // console.log(
+    //   `⏳ [${childDeviceId}] Time left: ${Math.floor(secondsRemaining / 60)}m ${
+    //     secondsRemaining % 60
+    //   }s`
+    // );
   }, 1000);
 
   // Timer for limit
