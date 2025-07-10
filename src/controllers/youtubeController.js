@@ -116,6 +116,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const UNSAFE_KEYWORDS = [
   // Violence & Gore
   "gun",
+  "rifle",
   "pistol",
   "kill",
   "blood",
