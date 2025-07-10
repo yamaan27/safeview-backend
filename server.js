@@ -21,6 +21,7 @@ io.on("connection", (socket) => {
 
   socket.on("join", (deviceId) => {
     socket.join(deviceId);
+    console.log("📥 JOIN:", deviceId);
     console.log(`👶 Socket ${socket.id} joined room: ${deviceId}`);
   });
 
