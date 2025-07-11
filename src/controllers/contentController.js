@@ -135,6 +135,8 @@ exports.updateSettings = async (req, res) => {
   const timeout = setTimeout(() => {
     clearInterval(interval); // stop countdown
     console.log(`⏰ Time limit reached for ${childDeviceId}`);
+    // Log before emitting
+    console.log(`📤 Emitting limitReached to room: ${childDeviceId}`);
 
     // Emit real-time event to frontend
     if (global._io) {
