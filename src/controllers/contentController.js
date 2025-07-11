@@ -132,11 +132,16 @@ exports.updateSettings = async (req, res) => {
   }, 1000);
 
   // Timer for limit
-  const timeout = setTimeout(() => {
+  const timeout = setTimeout(async () => {
     clearInterval(interval); // stop countdown
     console.log(`⏰ Time limit reached for ${childDeviceId}`);
-    // Log before emitting
     console.log(`📤 Emitting limitReached to room: ${childDeviceId}`);
+
+    // ✅ Update isLocked to true in DB
+    await ContentSettings.findOneAndUpdate(
+      { childDeviceId },
+      { isLocked: true, updatedAt: new Date() }
+    );
 
     // Emit real-time event to frontend
     if (global._io) {
