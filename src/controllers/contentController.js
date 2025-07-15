@@ -191,9 +191,10 @@ exports.updateSettings = async (req, res) => {
     console.log(`📤 Emitting limitReached to room: ${childDeviceId}`);
 
     // ✅ Update isLocked to true in DB
-    await ContentSettings.findOneAndUpdate(
+    const updatedLocked = await ContentSettings.findOneAndUpdate(
       { childDeviceId },
-      { isLocked: true, updatedAt: new Date() }
+      { isLocked: true, updatedAt: new Date() },
+      { new: true }
     );
 
     // Emit real-time event to frontend
@@ -202,6 +203,16 @@ exports.updateSettings = async (req, res) => {
         message: "Screen time limit reached",
         childDeviceId,
       });
+
+      // ✅ Also emit updated content settings to sync lock status
+      global._io.to(childDeviceId).emit("contentUpdated", {
+        childDeviceId,
+        settings: updatedLocked,
+      });
+
+      console.log(
+        `📤 Emitting contentUpdated after lock to room: ${childDeviceId}`
+      );
     }
   }, dailyLimit * 1000);
 
