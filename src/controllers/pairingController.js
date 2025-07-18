@@ -30,6 +30,28 @@ exports.verifyCode = async (req, res) => {
   res.json({ message: "Paired successfully" });
 };
 
+// exports.getStatus = async (req, res) => {
+//   const { deviceId } = req.params;
+
+//   const pairing = await Pairing.findOne({
+//     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+//   });
+
+//   if (!pairing) return res.json({ role: "unlinked" });
+
+//   if (pairing.childDeviceId === deviceId) {
+//     return res.json({
+//       role: "child",
+//       isVerified: pairing.isLinked === true,
+//     });
+//   }
+
+//   if (pairing.parentDeviceId === deviceId) {
+//     return res.json({ role: "parent" });
+//   }
+// };
+
+
 exports.getStatus = async (req, res) => {
   const { deviceId } = req.params;
 
@@ -39,16 +61,18 @@ exports.getStatus = async (req, res) => {
 
   if (!pairing) return res.json({ role: "unlinked" });
 
-  if (pairing.childDeviceId === deviceId) {
-    return res.json({
-      role: "child",
-      isVerified: pairing.isLinked === true,
-    });
-  }
-
   if (pairing.parentDeviceId === deviceId) {
     return res.json({ role: "parent" });
   }
+
+  if (pairing.childDeviceId === deviceId && pairing.isLinked) {
+    return res.json({
+      role: "child",
+      isVerified: true,
+    });
+  }
+
+  return res.json({ role: "unlinked" }); // fallback if not linked yet
 };
 
 
