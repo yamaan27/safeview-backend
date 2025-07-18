@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const app = require("./src/app");
 const http = require("http");
 const { Server } = require("socket.io");
-
+const { chatStreamSocket } = require("./src/controllers/chatbotController");
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -24,6 +24,9 @@ io.on("connection", (socket) => {
     console.log("📥 JOIN:", deviceId);
     console.log(`👶 Socket ${socket.id} joined room: ${deviceId}`);
   });
+
+  // 🧠 Register chatbot socket listener
+  chatStreamSocket(socket);
 
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);

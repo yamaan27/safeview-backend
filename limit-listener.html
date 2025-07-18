@@ -62,3 +62,63 @@
   </script>
 </body>
 </html>
+
+
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <title>👶 AI Buddy Socket Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      #output {
+        white-space: pre-wrap;
+        background: #f4f4f4;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>👶 AI Buddy:</h3>
+    <pre id="output">Waiting for response...</pre>
+
+    <script>
+      const socket = io("http://localhost:3000");
+      const output = document.getElementById("output");
+      const deviceId = "test-child-device"; // any test room
+
+      socket.on("connect", () => {
+        console.log("✅ Connected:", socket.id);
+        output.textContent = "";
+
+        socket.emit("join", deviceId);
+        socket.emit("chatbot-message", {
+          deviceId,
+          message: "Why do stars shine?",
+        });
+      });
+
+      socket.on("chatbot-token", (data) => {
+        output.textContent += data.token;
+      });
+
+      socket.on("chatbot-end", () => {
+        output.textContent += "\n\n✅ Done!";
+      });
+
+      socket.on("chatbot-error", (data) => {
+        output.textContent += "\n❌ Error: " + data.error;
+      });
+
+      socket.on("disconnect", () => {
+        console.log("🔴 Disconnected");
+      });
+    </script>
+  </body>
+</html> -->
