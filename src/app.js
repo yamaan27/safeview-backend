@@ -15,5 +15,7 @@ app.use("/content", contentRoutes);
 app.use("/activity", activityRoutes);
 app.use("/limit", limitRoutes);
 app.use("/youtube", youtubeRoutes);
+app.use("/chatbot", require("./routes/chatbotRoutes"));
+
 
 module.exports = app;
