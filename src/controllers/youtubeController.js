@@ -412,7 +412,13 @@ const CATEGORY_QUERY_MAP = {
 };
 
 exports.searchVideos = async (req, res) => {
-  let { query = "", maxResults = 10, childDeviceId } = req.query;
+  // let { query = "", maxResults = 10, childDeviceId } = req.query;
+
+  let { query = "", childDeviceId, page = 1, limit = 10 } = req.query;
+  page = parseInt(page);
+  limit = parseInt(limit);
+  const totalRequired = page * limit;
+
 
   let isLocked = false;
 
@@ -445,7 +451,11 @@ exports.searchVideos = async (req, res) => {
 
   try {
     console.log(`🧒 Device ID: ${childDeviceId || "none"}`);
-    console.log(`📦 Params: { query: '${query}', maxResults: ${maxResults} }`);
+    // console.log(`📦 Params: { query: '${query}', maxResults: ${maxResults} }`);
+    console.log(
+      `📦 Params: { query: '${query}', limit: ${limit}, page: ${page} }`
+    );
+
 
     // Apply content filtering based on settings
     let collectedVideos = [];
@@ -481,83 +491,95 @@ exports.searchVideos = async (req, res) => {
       return UNSAFE_KEYWORDS.some((kw) => cleaned.includes(kw.toLowerCase()));
     };
 
-    while (collectedVideos.length < maxResults && totalFetched < 100) {
-      const searchResponse = await axios.get(
-        "https://www.googleapis.com/youtube/v3/search",
-        {
-          params: {
-            part: "snippet",
-            q: query,
-            key: YOUTUBE_API_KEY,
-            type: "video",
-            maxResults: 10,
-            pageToken: nextPageToken || undefined,
-          },
-        }
-      );
+    // while (collectedVideos.length < maxResults && totalFetched < 100) {
+      while (collectedVideos.length < totalRequired && totalFetched < 100) {
+        const searchResponse = await axios.get(
+          "https://www.googleapis.com/youtube/v3/search",
+          {
+            params: {
+              part: "snippet",
+              q: query,
+              key: YOUTUBE_API_KEY,
+              type: "video",
+              maxResults: 10,
+              pageToken: nextPageToken || undefined,
+            },
+          }
+        );
 
-      const searchItems = searchResponse.data.items;
-      if (!searchItems.length) break;
+        const searchItems = searchResponse.data.items;
+        if (!searchItems.length) break;
 
-      const videoIds = searchItems.map((item) => item.id.videoId).join(",");
-      const videoResponse = await axios.get(
-        "https://www.googleapis.com/youtube/v3/videos",
-        {
-          params: {
-            part: "snippet",
-            id: videoIds,
-            key: YOUTUBE_API_KEY,
-          },
-        }
-      );
+        const videoIds = searchItems.map((item) => item.id.videoId).join(",");
+        const videoResponse = await axios.get(
+          "https://www.googleapis.com/youtube/v3/videos",
+          {
+            params: {
+              part: "snippet",
+              id: videoIds,
+              key: YOUTUBE_API_KEY,
+            },
+          }
+        );
 
-      let pageVideos = videoResponse.data.items.map((item) => ({
-        videoId: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnail:
-          item.snippet.thumbnails.high?.url ||
-          item.snippet.thumbnails.medium?.url ||
-          item.snippet.thumbnails.default.url,
-        channel: item.snippet.channelTitle,
-        categoryId: item.snippet.categoryId,
-      }));
+        let pageVideos = videoResponse.data.items.map((item) => ({
+          videoId: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnail:
+            item.snippet.thumbnails.high?.url ||
+            item.snippet.thumbnails.medium?.url ||
+            item.snippet.thumbnails.default.url,
+          channel: item.snippet.channelTitle,
+          categoryId: item.snippet.categoryId,
+        }));
 
-      if (childDeviceId) {
-        const settings = await ContentSettings.findOne({ childDeviceId });
-        if (settings) {
-          const {
-            blockedCategories = [],
-            blockUnsafeVideos: shouldBlock,
-            isLocked: locked,
-          } = settings;
+        if (childDeviceId) {
+          const settings = await ContentSettings.findOne({ childDeviceId });
+          if (settings) {
+            const {
+              blockedCategories = [],
+              blockUnsafeVideos: shouldBlock,
+              isLocked: locked,
+            } = settings;
 
-          isLocked = locked;
+            isLocked = locked;
 
-          // Filter videos by allowed category
-          pageVideos = pageVideos.filter(
-            (v) => !blockedCategories.includes(v.categoryId)
-          );
+            // Filter videos by allowed category
+            pageVideos = pageVideos.filter(
+              (v) => !blockedCategories.includes(v.categoryId)
+            );
 
-          // Then, apply unsafe keyword filtering
-          if (shouldBlock) {
-            pageVideos = pageVideos.filter((v) => {
-              const text = `${v.title} ${v.description}`;
-              return !isUnsafe(text);
-            });
+            // Then, apply unsafe keyword filtering
+            if (shouldBlock) {
+              pageVideos = pageVideos.filter((v) => {
+                const text = `${v.title} ${v.description}`;
+                return !isUnsafe(text);
+              });
+            }
           }
         }
+
+        collectedVideos.push(...pageVideos);
+        totalFetched += searchItems.length;
+        nextPageToken = searchResponse.data.nextPageToken;
+
+        if (!nextPageToken) break;
       }
 
-      collectedVideos.push(...pageVideos);
-      totalFetched += searchItems.length;
-      nextPageToken = searchResponse.data.nextPageToken;
+    // const finalVideos = collectedVideos.slice(0, maxResults);
+    // res.json({ isLocked, videos: finalVideos });
+    const startIndex = (page - 1) * limit;
+    const pagedVideos = collectedVideos.slice(startIndex, startIndex + limit);
 
-      if (!nextPageToken) break;
-    }
+    res.json({
+      isLocked,
+      page,
+      limit,
+      totalResults: collectedVideos.length,
+      videos: pagedVideos,
+    });
 
-    const finalVideos = collectedVideos.slice(0, maxResults);
-    res.json({ isLocked, videos: finalVideos });
   } catch (error) {
     console.error("❌ YouTube fetch error:", error.message);
     res.status(500).json({ error: "Failed to fetch videos" });
