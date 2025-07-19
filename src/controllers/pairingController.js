@@ -61,9 +61,17 @@ exports.getStatus = async (req, res) => {
 
   if (!pairing) return res.json({ role: "unlinked" });
 
+  // if (pairing.parentDeviceId === deviceId) {
+  //   return res.json({ role: "parent" });
+  // }
+
   if (pairing.parentDeviceId === deviceId) {
-    return res.json({ role: "parent" });
+    return res.json({
+      role: "parent",
+      isPinSet: pairing.parentPin !== null,
+    });
   }
+  
 
   if (pairing.childDeviceId === deviceId && pairing.isLinked) {
     return res.json({
