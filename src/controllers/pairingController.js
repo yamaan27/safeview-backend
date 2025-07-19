@@ -148,3 +148,33 @@ exports.getDeviceInfo = async (req, res) => {
     });
   }
 };
+
+
+// SET or UPDATE parent PIN
+exports.setParentPin = async (req, res) => {
+  const { parentDeviceId, pin } = req.body;
+
+  const pairing = await Pairing.findOne({ parentDeviceId });
+
+  if (!pairing) {
+    return res.status(404).json({ message: "Pairing not found for this parent" });
+  }
+
+  pairing.parentPin = pin; // Optionally hash for extra security
+  await pairing.save();
+
+  res.json({ message: "Parent PIN set successfully" });
+};
+
+// VERIFY parent PIN
+exports.verifyParentPin = async (req, res) => {
+  const { parentDeviceId, pin } = req.body;
+
+  const pairing = await Pairing.findOne({ parentDeviceId });
+
+  if (!pairing || pairing.parentPin !== pin) {
+    return res.status(401).json({ message: "Invalid PIN" });
+  }
+
+  res.json({ message: "PIN verified" });
+};

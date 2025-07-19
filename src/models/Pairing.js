@@ -19,6 +19,7 @@ const pairingSchema = new mongoose.Schema({
   parentDeviceId: { type: String, default: null },
   isLinked: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
+  parentPin: { type: String, default: null },
 });
 
 // ❌ Removed TTL index — pairings will not auto-delete now

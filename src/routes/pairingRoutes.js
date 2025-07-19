@@ -11,6 +11,10 @@ router.get("/status2/:deviceId", pairingController.getStatus2);
 router.delete("/unlink/:deviceId", pairingController.unlink);
 router.get("/me/:deviceId", pairingController.getDeviceInfo);
 
+router.post("/set-pin", pairingController.setParentPin);
+router.post("/verify-pin", pairingController.verifyParentPin);
+
+
 router.get("/list-indexes", async (req, res) => {
   try {
     const indexes = await Pairing.collection.indexes();
