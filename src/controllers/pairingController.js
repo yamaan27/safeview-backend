@@ -118,13 +118,88 @@ exports.getStatus2 = async (req, res) => {
 };
 
 
+// exports.unlink = async (req, res) => {
+//   const { deviceId } = req.params;
+
+//   await Pairing.deleteOne({
+//     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+//   });
+
+//   res.json({ message: "Unlinked successfully" });
+// };
+
+
+// exports.unlink = async (req, res) => {
+//   const { deviceId } = req.params;
+
+//   const pairing = await Pairing.findOne({
+//     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+//   });
+
+//   if (!pairing) {
+//     return res.status(404).json({ message: "No pairing found" });
+//   }
+
+//   const childId = pairing.childDeviceId;
+//   const parentId = pairing.parentDeviceId;
+
+//   await Pairing.deleteOne({ _id: pairing._id });
+
+//   // ✅ Emit to both devices via socket
+//   if (global._io) {
+//     if (childId)
+//       global._io
+//         .to(childId)
+//         .emit("unlinked", { deviceId: childId, role: "child" });
+//     if (parentId)
+//       global._io
+//         .to(parentId)
+//         .emit("unlinked", { deviceId: parentId, role: "parent" });
+//   }
+
+//   res.json({ message: "Unlinked successfully" });
+// };
+
 exports.unlink = async (req, res) => {
   const { deviceId } = req.params;
 
-  await Pairing.deleteOne({
+  console.log("🔗 Unlink request received for device:", deviceId);
+
+  const pairing = await Pairing.findOne({
     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
   });
 
+  if (!pairing) {
+    console.log("❌ No pairing found for device:", deviceId);
+    return res.status(404).json({ message: "No pairing found" });
+  }
+
+  const childId = pairing.childDeviceId;
+  const parentId = pairing.parentDeviceId;
+
+  console.log("🧼 Deleting pairing:", pairing._id);
+  await Pairing.deleteOne({ _id: pairing._id });
+
+  // ✅ Emit to both devices via socket
+  if (global._io) {
+    console.log("📡 Emitting 'unlinked' to:");
+    if (childId) {
+      console.log("👶 Child:", childId);
+      global._io
+        .to(childId)
+        .emit("unlinked", { deviceId: childId, role: "child" });
+    }
+    if (parentId) {
+      console.log("👨‍👩‍👧 Parent:", parentId);
+      global._io
+        .to(parentId)
+        .emit("unlinked", { deviceId: parentId, role: "parent" });
+    }
+  } else {
+    console.log("⚠️ global._io not initialized");
+  }
+
+  console.log("✅ Unlink complete for device:", deviceId);
   res.json({ message: "Unlinked successfully" });
 };
 
