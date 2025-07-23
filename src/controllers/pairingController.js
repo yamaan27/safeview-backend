@@ -51,7 +51,6 @@ exports.verifyCode = async (req, res) => {
 //   }
 // };
 
-
 exports.getStatus = async (req, res) => {
   const { deviceId } = req.params;
 
@@ -71,7 +70,6 @@ exports.getStatus = async (req, res) => {
       isPinSet: pairing.parentPin !== null,
     });
   }
-  
 
   if (pairing.childDeviceId === deviceId && pairing.isLinked) {
     return res.json({
@@ -82,7 +80,6 @@ exports.getStatus = async (req, res) => {
 
   return res.json({ role: "unlinked" }); // fallback if not linked yet
 };
-
 
 exports.getStatus2 = async (req, res) => {
   const { deviceId } = req.params;
@@ -117,7 +114,6 @@ exports.getStatus2 = async (req, res) => {
   checkStatus();
 };
 
-
 // exports.unlink = async (req, res) => {
 //   const { deviceId } = req.params;
 
@@ -127,7 +123,6 @@ exports.getStatus2 = async (req, res) => {
 
 //   res.json({ message: "Unlinked successfully" });
 // };
-
 
 // exports.unlink = async (req, res) => {
 //   const { deviceId } = req.params;
@@ -163,8 +158,6 @@ exports.getStatus2 = async (req, res) => {
 exports.unlink = async (req, res) => {
   const { deviceId } = req.params;
 
-  console.log("🔗 Unlink request received for device:", deviceId);
-
   const pairing = await Pairing.findOne({
     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
   });
@@ -177,8 +170,10 @@ exports.unlink = async (req, res) => {
   const childId = pairing.childDeviceId;
   const parentId = pairing.parentDeviceId;
 
-  console.log("🧼 Deleting pairing:", pairing._id);
-  await Pairing.deleteOne({ _id: pairing._id });
+  // await Pairing.deleteOne({ _id: pairing._id });
+
+  const deleted = await Pairing.findByIdAndDelete(pairing._id);
+  console.log("🗑️ Deleted pairing document:", deleted);
 
   // ✅ Emit to both devices via socket
   if (global._io) {
@@ -202,7 +197,6 @@ exports.unlink = async (req, res) => {
   console.log("✅ Unlink complete for device:", deviceId);
   res.json({ message: "Unlinked successfully" });
 };
-
 
 exports.getDeviceInfo = async (req, res) => {
   const { deviceId } = req.params;
@@ -232,7 +226,6 @@ exports.getDeviceInfo = async (req, res) => {
   }
 };
 
-
 // SET or UPDATE parent PIN
 exports.setParentPin = async (req, res) => {
   const { parentDeviceId, pin } = req.body;
@@ -240,7 +233,9 @@ exports.setParentPin = async (req, res) => {
   const pairing = await Pairing.findOne({ parentDeviceId });
 
   if (!pairing) {
-    return res.status(404).json({ message: "Pairing not found for this parent" });
+    return res
+      .status(404)
+      .json({ message: "Pairing not found for this parent" });
   }
 
   pairing.parentPin = pin; // Optionally hash for extra security
