@@ -33,10 +33,29 @@ io.on("connection", (socket) => {
   });
 });
 
+// mongoose
+//   .connect(process.env.MONGO_URI)
+//   .then(() => {
+//     console.log("✅ MongoDB connected");
+//     server.listen(3000, () => console.log("🚀 Server running on port 3000"));
+//   })
+//   .catch((err) => console.error("❌ MongoDB connection error:", err));
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
-    server.listen(3000, () => console.log("🚀 Server running on port 3000"));
+    server.listen(3000, () => {
+      console.log("🚀 Server running on port 3000");
+
+      // ⏰ Start cron task after server is running
+      const cron = require("node-cron");
+      const checkAndNotifyTrialExpiry = require("./src/utils/checkTrialExpiry");
+
+      cron.schedule("*/5 * * * *", () => {
+        console.log("🕵️ Checking for expired trials...");
+        checkAndNotifyTrialExpiry();
+      });
+    });
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
