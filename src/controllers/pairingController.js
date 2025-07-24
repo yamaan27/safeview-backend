@@ -198,6 +198,36 @@ exports.unlink = async (req, res) => {
   res.json({ message: "Unlinked successfully" });
 };
 
+// exports.getDeviceInfo = async (req, res) => {
+//   const { deviceId } = req.params;
+
+//   const pairing = await Pairing.findOne({
+//     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+//   });
+
+//   if (!pairing) {
+//     return res.json({ deviceId, role: "unlinked" });
+//   }
+
+//   if (pairing.childDeviceId === deviceId) {
+//     return res.json({
+//       deviceId,
+//       role: "child",
+//       pairedWith: pairing.parentDeviceId || null,
+//     });
+//   }
+
+//   if (pairing.parentDeviceId === deviceId) {
+//     return res.json({
+//       deviceId,
+//       role: "parent",
+//       pairedWith: pairing.childDeviceId,
+//     });
+//   }
+// };
+
+// SET or UPDATE parent PIN
+
 exports.getDeviceInfo = async (req, res) => {
   const { deviceId } = req.params;
 
@@ -205,7 +235,8 @@ exports.getDeviceInfo = async (req, res) => {
     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
   });
 
-  if (!pairing) {
+  if (!pairing || !pairing.isLinked) {
+    // If not found or not yet linked, return unlinked status
     return res.json({ deviceId, role: "unlinked" });
   }
 
@@ -224,9 +255,11 @@ exports.getDeviceInfo = async (req, res) => {
       pairedWith: pairing.childDeviceId,
     });
   }
+
+  // Fallback (shouldn't happen)
+  return res.json({ deviceId, role: "unlinked" });
 };
 
-// SET or UPDATE parent PIN
 exports.setParentPin = async (req, res) => {
   const { parentDeviceId, pin } = req.body;
 
