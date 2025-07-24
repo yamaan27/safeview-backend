@@ -1,4 +1,6 @@
 const Pairing = require("../models/Pairing");
+const ContentSettings = require("../models/ContentSettings");
+const ScreenLimit = require("../models/ScreenLimit");
 const { generateCode } = require("../services/codeGenerator");
 
 exports.generateCode = async (req, res) => {
@@ -114,15 +116,6 @@ exports.getStatus2 = async (req, res) => {
   checkStatus();
 };
 
-// exports.unlink = async (req, res) => {
-//   const { deviceId } = req.params;
-
-//   await Pairing.deleteOne({
-//     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
-//   });
-
-//   res.json({ message: "Unlinked successfully" });
-// };
 
 // exports.unlink = async (req, res) => {
 //   const { deviceId } = req.params;
@@ -132,71 +125,40 @@ exports.getStatus2 = async (req, res) => {
 //   });
 
 //   if (!pairing) {
+//     console.log("❌ No pairing found for device:", deviceId);
 //     return res.status(404).json({ message: "No pairing found" });
 //   }
 
 //   const childId = pairing.childDeviceId;
 //   const parentId = pairing.parentDeviceId;
 
-//   await Pairing.deleteOne({ _id: pairing._id });
+//   // await Pairing.deleteOne({ _id: pairing._id });
+
+//   const deleted = await Pairing.findByIdAndDelete(pairing._id);
+//   console.log("🗑️ Deleted pairing document:", deleted);
 
 //   // ✅ Emit to both devices via socket
 //   if (global._io) {
-//     if (childId)
+//     console.log("📡 Emitting 'unlinked' to:");
+//     if (childId) {
+//       console.log("👶 Child:", childId);
 //       global._io
 //         .to(childId)
 //         .emit("unlinked", { deviceId: childId, role: "child" });
-//     if (parentId)
+//     }
+//     if (parentId) {
+//       console.log("👨‍👩‍👧 Parent:", parentId);
 //       global._io
 //         .to(parentId)
 //         .emit("unlinked", { deviceId: parentId, role: "parent" });
+//     }
+//   } else {
+//     console.log("⚠️ global._io not initialized");
 //   }
 
+//   console.log("✅ Unlink complete for device:", deviceId);
 //   res.json({ message: "Unlinked successfully" });
 // };
-
-exports.unlink = async (req, res) => {
-  const { deviceId } = req.params;
-
-  const pairing = await Pairing.findOne({
-    $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
-  });
-
-  if (!pairing) {
-    console.log("❌ No pairing found for device:", deviceId);
-    return res.status(404).json({ message: "No pairing found" });
-  }
-
-  const childId = pairing.childDeviceId;
-  const parentId = pairing.parentDeviceId;
-
-  // await Pairing.deleteOne({ _id: pairing._id });
-
-  const deleted = await Pairing.findByIdAndDelete(pairing._id);
-  console.log("🗑️ Deleted pairing document:", deleted);
-
-  // ✅ Emit to both devices via socket
-  if (global._io) {
-    console.log("📡 Emitting 'unlinked' to:");
-    if (childId) {
-      console.log("👶 Child:", childId);
-      global._io
-        .to(childId)
-        .emit("unlinked", { deviceId: childId, role: "child" });
-    }
-    if (parentId) {
-      console.log("👨‍👩‍👧 Parent:", parentId);
-      global._io
-        .to(parentId)
-        .emit("unlinked", { deviceId: parentId, role: "parent" });
-    }
-  } else {
-    console.log("⚠️ global._io not initialized");
-  }
-
-  console.log("✅ Unlink complete for device:", deviceId);
-  res.json({ message: "Unlinked successfully" });
-};
 
 // exports.getDeviceInfo = async (req, res) => {
 //   const { deviceId } = req.params;
@@ -227,6 +189,68 @@ exports.unlink = async (req, res) => {
 // };
 
 // SET or UPDATE parent PIN
+
+
+
+
+exports.unlink = async (req, res) => {
+  const { deviceId } = req.params;
+
+  const pairing = await Pairing.findOne({
+    $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
+  });
+
+  if (!pairing) {
+    console.log("❌ No pairing found for device:", deviceId);
+    return res.status(404).json({ message: "No pairing found" });
+  }
+
+  const childId = pairing.childDeviceId;
+  const parentId = pairing.parentDeviceId;
+
+  const deleted = await Pairing.findByIdAndDelete(pairing._id);
+  console.log("🗑️ Deleted pairing document:", deleted);
+
+  // 🧹 Delete associated content settings
+  const contentDeleted = await ContentSettings.deleteOne({
+    childDeviceId: childId,
+  });
+  const screenLimitDeleted = await ScreenLimit.deleteOne({
+    childDeviceId: childId,
+  });
+  console.log("🗑️ Deleted ContentSettings:", contentDeleted.deletedCount);
+  console.log("🗑️ Deleted ScreenLimit:", screenLimitDeleted.deletedCount);
+
+  // 🧹 Clear screen time timers
+  if (global.timers?.[childId]) {
+    clearTimeout(global.timers[childId].timeout);
+    clearInterval(global.timers[childId].interval);
+    delete global.timers[childId];
+    console.log(`🧹 Cleared timers for: ${childId}`);
+  }
+
+  // ✅ Emit to both devices via socket
+  if (global._io) {
+    console.log("📡 Emitting 'unlinked' to:");
+    if (childId) {
+      console.log("👶 Child:", childId);
+      global._io
+        .to(childId)
+        .emit("unlinked", { deviceId: childId, role: "child" });
+    }
+    if (parentId) {
+      console.log("👨‍👩‍👧 Parent:", parentId);
+      global._io
+        .to(parentId)
+        .emit("unlinked", { deviceId: parentId, role: "parent" });
+    }
+  } else {
+    console.log("⚠️ global._io not initialized");
+  }
+
+  console.log("✅ Unlink complete for device:", deviceId);
+  res.json({ message: "Unlinked successfully" });
+};
 
 exports.getDeviceInfo = async (req, res) => {
   const { deviceId } = req.params;
