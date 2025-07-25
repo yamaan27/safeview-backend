@@ -56,6 +56,10 @@ mongoose
         console.log("🕵️ Checking for expired trials...");
         checkAndNotifyTrialExpiry();
       });
+
+      // ✅ Cron: Fetch trending videos every 30 mins
+      require("./src/utils/fetchTrending");
+      
     });
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
