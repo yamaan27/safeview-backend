@@ -640,7 +640,7 @@ exports.searchAndEmitVideos = async (
     )}:${blockUnsafeVideos}`;
 
     // ✅ Check cache
-    const cached = await redis.get(cacheKey);
+    const cached = await redisClient.get(cacheKey);
     if (cached) {
       const videos = JSON.parse(cached);
       if (global._io) {
@@ -734,7 +734,7 @@ exports.searchAndEmitVideos = async (
     const finalVideos = collectedVideos.slice(0, maxResults);
 
     // ✅ Cache result (TTL = 30 mins)
-    await redis.set(cacheKey, JSON.stringify(finalVideos), {
+    await redisClient.set(cacheKey, JSON.stringify(finalVideos), {
       EX: 60 * 30,
     });
 
