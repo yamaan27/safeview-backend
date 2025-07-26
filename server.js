@@ -58,7 +58,7 @@ mongoose
       });
 
       // ✅ Cron: Fetch trending videos every 30 mins
-      require("./src/utils/fetchTrending");
+      // require("./src/utils/fetchTrending");
       
     });
   })
