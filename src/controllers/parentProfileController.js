@@ -1,4 +1,30 @@
 const ParentProfile = require("../models/ParentProfile");
+const Pairing = require("../models/Pairing"); // Add this line
+
+exports.getProfile = async (req, res) => {
+  try {
+    const { parentDeviceId } = req.params;
+
+    // Get parent profile
+    const profile = await ParentProfile.findOne({ parentDeviceId });
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Find pairing to get the linked childDeviceId
+    const pairing = await Pairing.findOne({ parentDeviceId, isLinked: true });
+
+    // Attach childDeviceId if exists
+    const profileWithChild = {
+      ...profile.toObject(),
+      childDeviceId: pairing ? pairing.childDeviceId : null,
+    };
+
+    res.json(profileWithChild);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 exports.createProfile = async (req, res) => {
   try {
@@ -30,20 +56,47 @@ exports.createProfile = async (req, res) => {
   }
 };
 
-exports.getProfile = async (req, res) => {
-  try {
-    const { parentDeviceId } = req.params;
-    const profile = await ParentProfile.findOne({ parentDeviceId });
+// exports.getProfile = async (req, res) => {
+//   try {
+//     const { parentDeviceId } = req.params;
+//     const profile = await ParentProfile.findOne({ parentDeviceId });
 
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
+//     if (!profile) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
 
-    res.json(profile);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+//     res.json(profile);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// exports.getProfile = async (req, res) => {
+//   try {
+//     const { parentDeviceId } = req.params;
+
+//     const profile = await ParentProfile.findOne({ parentDeviceId });
+
+//     if (!profile) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
+
+//     // 🔍 Look for a linked child device
+//     const pairing = await Pairing.findOne({
+//       parentDeviceId,
+//       isLinked: true,
+//     });
+
+//     const response = {
+//       ...profile.toObject(),
+//       childDeviceId: pairing?.childDeviceId || null,
+//     };
+
+//     res.json(response);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 exports.updateProfile = async (req, res) => {
   try {
