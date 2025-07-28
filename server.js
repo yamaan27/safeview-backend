@@ -44,7 +44,11 @@ mongoose
       const cron = require("node-cron");
       const checkAndNotifyTrialExpiry = require("./src/utils/checkTrialExpiry");
 
-      cron.schedule("*/5 * * * *", () => {
+      // cron.schedule("*/5 * * * *", () => {
+
+        // For testing purpose, checking every 5 seconds
+
+      cron.schedule("*/5 * * * * *", () => {
         console.log("🕵️ Checking for expired trials...");
         checkAndNotifyTrialExpiry();
       });
