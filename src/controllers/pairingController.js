@@ -3,14 +3,27 @@ const ContentSettings = require("../models/ContentSettings");
 const ScreenLimit = require("../models/ScreenLimit");
 const { generateCode } = require("../services/codeGenerator");
 
+// exports.generateCode = async (req, res) => {
+//   const { childDeviceId } = req.body;
+
+//   const code = generateCode();
+//   const newPairing = await Pairing.create({ code, childDeviceId });
+
+//   res.status(201).json({ code });
+// };
+
 exports.generateCode = async (req, res) => {
   const { childDeviceId } = req.body;
+
+  // ❌ Prevent multiple pairings for same child
+  await Pairing.deleteMany({ childDeviceId });
 
   const code = generateCode();
   const newPairing = await Pairing.create({ code, childDeviceId });
 
   res.status(201).json({ code });
 };
+
 
 exports.verifyCode = async (req, res) => {
   const { code, parentDeviceId } = req.body;
