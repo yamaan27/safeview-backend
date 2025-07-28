@@ -696,16 +696,34 @@ exports.searchVideos = async (req, res) => {
 };
 
 
+const MAX_RESULTS = 10;
+const MAX_FETCH_LIMIT = 50;
+
+function formatVideo(v) {
+  return {
+    videoId: v.id,
+    title: v.snippet.title,
+    description: v.snippet.description,
+    thumbnail:
+      v.snippet.thumbnails.high?.url ||
+      v.snippet.thumbnails.medium?.url ||
+      v.snippet.thumbnails.default?.url,
+    channel: v.snippet.channelTitle,
+    categoryId: v.snippet.categoryId,
+  };
+}
 
 exports.searchAndEmitVideos = async (
   childDeviceId,
   query = "trending videos",
-  maxResults = 10
+  maxResults = MAX_RESULTS
 ) => {
   try {
     const settings = await ContentSettings.findOne({ childDeviceId });
-
-    if (!settings) return;
+    if (!settings) {
+      console.log("⚠️ No settings found for", childDeviceId);
+      return;
+    }
 
     const {
       blockedCategories = [],
@@ -713,24 +731,11 @@ exports.searchAndEmitVideos = async (
       isLocked = false,
     } = settings;
 
-    // Default query from allowed category
-    query = query.trim();
-    if (!query) {
-      const unblocked = Object.keys(CATEGORY_QUERY_MAP).filter(
-        (id) => !blockedCategories.includes(id)
-      );
-      query =
-        unblocked.length > 0
-          ? CATEGORY_QUERY_MAP[unblocked[0]]
-          : "trending videos";
-    }
+    const cacheKey = `emit:${childDeviceId}:${query}:${maxResults}:${blockedCategories
+      .sort()
+      .join(",")}:${blockUnsafeVideos}`;
 
-    // 👇 Redis cache key
-    const cacheKey = `videos:${childDeviceId}:${query}:${blockedCategories.join(
-      ","
-    )}:${blockUnsafeVideos}`;
-
-    // ✅ Check cache
+    // Redis check
     const cached = await redisClient.get(cacheKey);
     if (cached) {
       const videos = JSON.parse(cached);
@@ -739,98 +744,82 @@ exports.searchAndEmitVideos = async (
           isLocked,
           videos,
         });
-        console.log(`📤 Sent cached videoListUpdated to ${childDeviceId}`);
+        console.log(`⚡ Sent cached videoListUpdated to ${childDeviceId}`);
       }
       return;
     }
 
-    const normalizeText = (text) =>
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    let collected = [];
+    let pageToken = "";
+    let fetchCount = 0;
 
-    const isUnsafe = (text) =>
-      UNSAFE_KEYWORDS.some((kw) =>
-        normalizeText(text).includes(kw.toLowerCase())
-      );
-
-    let collectedVideos = [];
-    let totalFetched = 0;
-    let nextPageToken = null;
-
-    while (collectedVideos.length < maxResults && totalFetched < 100) {
-      const searchResponse = await axios.get(
-        "https://www.googleapis.com/youtube/v3/search",
-        {
+    for (
+      let i = 0;
+      collected.length < maxResults && fetchCount < MAX_FETCH_LIMIT;
+      i++
+    ) {
+      console.log(`🔁 API Iteration ${i + 1} | Collected: ${collected.length}`);
+      const searchRes = await fetchWithRotatingKey((key) =>
+        axios.get("https://www.googleapis.com/youtube/v3/search", {
           params: {
-            part: "snippet",
             q: query,
-            key: YOUTUBE_API_KEY,
-            type: "video",
-            maxResults: 10,
-            pageToken: nextPageToken || undefined,
-          },
-        }
-      );
-
-      const searchItems = searchResponse.data.items;
-      if (!searchItems.length) break;
-
-      const videoIds = searchItems.map((item) => item.id.videoId).join(",");
-      const videoResponse = await axios.get(
-        "https://www.googleapis.com/youtube/v3/videos",
-        {
-          params: {
             part: "snippet",
-            id: videoIds,
-            key: YOUTUBE_API_KEY,
+            maxResults: 10,
+            type: "video",
+            pageToken,
+            key,
           },
-        }
+        })
       );
 
-      let pageVideos = videoResponse.data.items.map((item) => ({
-        videoId: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnail:
-          item.snippet.thumbnails.high?.url ||
-          item.snippet.thumbnails.medium?.url ||
-          item.snippet.thumbnails.default.url,
-        channel: item.snippet.channelTitle,
-        categoryId: item.snippet.categoryId,
-      }));
+      const searchItems = searchRes.data.items || [];
+      const videoIds = searchItems
+        .map((item) => item.id.videoId)
+        .filter(Boolean);
+      if (!videoIds.length) break;
 
-      // Filter by category
-      pageVideos = pageVideos.filter(
-        (v) => !blockedCategories.includes(v.categoryId)
+      const videoRes = await fetchWithRotatingKey((key) =>
+        axios.get("https://www.googleapis.com/youtube/v3/videos", {
+          params: {
+            id: videoIds.join(","),
+            part: "snippet,contentDetails",
+            key,
+          },
+        })
       );
 
-      // Filter unsafe
-      if (blockUnsafeVideos) {
-        pageVideos = pageVideos.filter((v) => {
-          const text = `${v.title} ${v.description}`;
-          return !isUnsafe(text);
-        });
-      }
+      const videoItems = videoRes.data.items || [];
+      fetchCount += 2;
 
-      collectedVideos.push(...pageVideos);
-      totalFetched += searchItems.length;
-      nextPageToken = searchResponse.data.nextPageToken;
+      const filtered = videoItems
+        .filter((v) => {
+          const catId = v.snippet?.categoryId?.toString();
+          const title = v.snippet?.title || "";
+          const description = v.snippet?.description || "";
+          if (blockedCategories.includes(catId)) {
+            console.log(`❌ Blocked category: ${catId}`);
+            return false;
+          }
+          if (blockUnsafeVideos && isUnsafe(`${title} ${description}`)) {
+            console.log(`❌ Unsafe video: ${title}`);
+            return false;
+          }
+          return true;
+        })
+        .map(formatVideo);
 
-      if (!nextPageToken) break;
+      collected.push(...filtered);
+      if (collected.length >= maxResults) break;
+
+      pageToken = searchRes.data.nextPageToken;
+      if (!pageToken) break;
     }
 
-    const finalVideos = collectedVideos.slice(0, maxResults);
+    const finalVideos = collected.slice(0, maxResults);
 
-    // ✅ Cache result (TTL = 30 mins)
-    // await redisClient.set(cacheKey, JSON.stringify(finalVideos), {
-    //   EX: 60 * 30,
-    // });
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(finalVideos)); // Cache for 1 hour
+    // Redis cache (1 hour)
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(finalVideos));
 
-    // 🔥 Emit to socket
     if (global._io) {
       global._io.to(childDeviceId).emit("videoListUpdated", {
         isLocked,
@@ -838,6 +827,10 @@ exports.searchAndEmitVideos = async (
       });
       console.log(`📤 Emitted videoListUpdated to ${childDeviceId}`);
     }
+
+    console.log(
+      `✅ Emission complete | Videos sent: ${finalVideos.length} | API calls: ${fetchCount}`
+    );
   } catch (err) {
     console.error("❌ searchAndEmitVideos error:", err.message);
   }

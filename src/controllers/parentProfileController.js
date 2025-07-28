@@ -10,7 +10,9 @@ exports.createProfile = async (req, res) => {
       return res.status(400).json({ message: "Profile already exists" });
     }
 
-    const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+    // const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+    // For testing purpose setting it to 1 Minute
+    const THREE_DAYS = 1 * 60 * 1000; // 1 minute in milliseconds;
 
     const profile = await ParentProfile.create({
       parentDeviceId,

@@ -33,14 +33,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => {
-//     console.log("✅ MongoDB connected");
-//     server.listen(3000, () => console.log("🚀 Server running on port 3000"));
-//   })
-//   .catch((err) => console.error("❌ MongoDB connection error:", err));
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -59,7 +51,6 @@ mongoose
 
       // ✅ Cron: Fetch trending videos every 30 mins
       // require("./src/utils/fetchTrending");
-      
     });
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));

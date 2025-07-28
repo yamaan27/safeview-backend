@@ -35,7 +35,7 @@
   <meta charset="UTF-8" />
   <title>Activity Log Listener</title>
 </head>
-<body>
+<!-- <body>
   <h2>📺 Activity Log Listener</h2>
   <div id="status">Connecting...</div>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -60,7 +60,40 @@
       document.getElementById("status").innerText = "❌ Disconnected";
     });
   </script>
-</body>
+</body> -->
+<body>
+  <h2>📺 Activity Log Listener</h2>
+  <div id="status">Connecting...</div>
+  <div id="time">⏳ Remaining Time: --</div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    // const socket = io("https://safeview-backend.onrender.com");
+    const socket = io("http://localhost:3000");
+
+    const childDeviceId = "child-123";
+
+    socket.on("connect", () => {
+      console.log("✅ Connected to server");
+      document.getElementById("status").innerText = "✅ Connected";
+      socket.emit("join", childDeviceId);
+    });
+
+    socket.on("activityLogged", (data) => {
+      console.log("📥 Activity Logged:", data);
+      alert(`🎥 Video Logged: ${data.title}`);
+    });
+
+    socket.on("screenTime", (data) => {
+      console.log("⏳ Remaining Time:", data.remaining);
+      document.getElementById("time").innerText = `⏳ Remaining Time: ${data.remaining}s`;
+    });
+
+    socket.on("disconnect", () => {
+      document.getElementById("status").innerText = "❌ Disconnected";
+    });
+  </script>
+</body> 
 </html>
 
 
@@ -122,3 +155,39 @@
     </script>
   </body>
 </html> -->
+
+
+<!-- 
+<body>
+  <h2>📺 Activity Log Listener</h2>
+  <div id="status">Connecting...</div>
+  <div id="time">⏳ Remaining Time: --</div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    // const socket = io("https://safeview-backend.onrender.com");
+    const socket = io("http://localhost:3000");
+
+    const childDeviceId = "child-123";
+
+    socket.on("connect", () => {
+      console.log("✅ Connected to server");
+      document.getElementById("status").innerText = "✅ Connected";
+      socket.emit("join", childDeviceId);
+    });
+
+    socket.on("activityLogged", (data) => {
+      console.log("📥 Activity Logged:", data);
+      alert(`🎥 Video Logged: ${data.title}`);
+    });
+
+    socket.on("screenTime", (data) => {
+      console.log("⏳ Remaining Time:", data.remaining);
+      document.getElementById("time").innerText = `⏳ Remaining Time: ${data.remaining}s`;
+    });
+
+    socket.on("disconnect", () => {
+      document.getElementById("status").innerText = "❌ Disconnected";
+    });
+  </script>
+</body> -->
