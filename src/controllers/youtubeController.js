@@ -591,6 +591,9 @@ exports.searchVideos = async (req, res) => {
     let usedBackupQuery = false;
     let currentQuery = query;
 
+     const desiredOffset = (parsedPage - 1) * parsedLimit;
+     let skipped = 0;
+
     for (let i = 0; i < MAX_ITERATIONS && collected.length < parsedLimit; i++) {
       console.log(`🔁 Iteration #${i + 1} | Collected: ${collected.length}`);
       const searchRes = await fetchWithRotatingKey((key) =>
@@ -656,7 +659,17 @@ exports.searchVideos = async (req, res) => {
           v.snippet.thumbnails.default?.url,
       }));
 
-      collected.push(...formatted);
+      // collected.push(...formatted);
+     for (const video of formatted) {
+       if (skipped < desiredOffset) {
+         skipped++;
+         continue;
+       }
+       collected.push(video);
+       if (collected.length >= parsedLimit) break;
+     }
+
+
 
       if (collected.length >= parsedLimit) break;
 
