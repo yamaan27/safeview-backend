@@ -25,25 +25,25 @@ exports.generateCode = async (req, res) => {
 };
 
 
-exports.verifyCode = async (req, res) => {
-  const { code, parentDeviceId } = req.body;
+// exports.verifyCode = async (req, res) => {
+//   const { code, parentDeviceId } = req.body;
 
-  const pairing = await Pairing.findOne({ code });
+//   const pairing = await Pairing.findOne({ code });
 
-  if (!pairing) {
-    return res.status(404).json({ message: "Invalid code" });
-  }
+//   if (!pairing) {
+//     return res.status(404).json({ message: "Invalid code" });
+//   }
 
-  if (pairing.childDeviceId === parentDeviceId) {
-    return res.status(400).json({ message: "Same device cannot pair" });
-  }
+//   if (pairing.childDeviceId === parentDeviceId) {
+//     return res.status(400).json({ message: "Same device cannot pair" });
+//   }
 
-  pairing.parentDeviceId = parentDeviceId;
-  pairing.isLinked = true;
-  await pairing.save();
+//   pairing.parentDeviceId = parentDeviceId;
+//   pairing.isLinked = true;
+//   await pairing.save();
 
-  res.json({ message: "Paired successfully" });
-};
+//   res.json({ message: "Paired successfully" });
+// };
 
 // exports.getStatus = async (req, res) => {
 //   const { deviceId } = req.params;
@@ -65,6 +65,33 @@ exports.verifyCode = async (req, res) => {
 //     return res.json({ role: "parent" });
 //   }
 // };
+
+
+exports.verifyCode = async (req, res) => {
+  const { code, parentDeviceId } = req.body;
+
+  // 🚫 Reject if parentDeviceId is missing or empty
+  if (!parentDeviceId || parentDeviceId.trim() === "") {
+    return res.status(400).json({ message: "parentDeviceId is required" });
+  }
+
+  const pairing = await Pairing.findOne({ code });
+
+  if (!pairing) {
+    return res.status(404).json({ message: "Invalid code" });
+  }
+
+  if (pairing.childDeviceId === parentDeviceId) {
+    return res.status(400).json({ message: "Same device cannot pair" });
+  }
+
+  pairing.parentDeviceId = parentDeviceId;
+  pairing.isLinked = true;
+  await pairing.save();
+
+  res.json({ message: "Paired successfully" });
+};
+
 
 exports.getStatus = async (req, res) => {
   const { deviceId } = req.params;

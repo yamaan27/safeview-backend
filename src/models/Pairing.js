@@ -1,28 +1,23 @@
-// const mongoose = require("mongoose");
-
-// const pairingSchema = new mongoose.Schema({
-//   code: { type: String, required: true, unique: true },
-//   childDeviceId: { type: String, required: true },
-//   parentDeviceId: { type: String, default: null },
-//   isLinked: { type: Boolean, default: false },
-//   createdAt: { type: Date, default: Date.now, expires: 60 }, // auto-delete in 10 mins
-// });
-
-// module.exports = mongoose.model("Pairing", pairingSchema);
-
-
 const mongoose = require("mongoose");
 
 const pairingSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   childDeviceId: { type: String, required: true },
-  parentDeviceId: { type: String, default: null },
+  // parentDeviceId: { type: String, default: null },
+  parentDeviceId: {
+    type: String,
+    default: null,
+    validate: {
+      validator: function (v) {
+        return v === null || v.trim() !== "";
+      },
+      message: "parentDeviceId cannot be an empty string",
+    },
+  },
+
   isLinked: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   parentPin: { type: String, default: null },
 });
-
-// ❌ Removed TTL index — pairings will not auto-delete now
-// ✅ They will persist until manually unlinked via API
 
 module.exports = mongoose.model("Pairing", pairingSchema);
