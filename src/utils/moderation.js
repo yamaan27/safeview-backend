@@ -373,9 +373,19 @@ const bannedWords = [
   "bribery",
 ];
 
-function isUnsafe(text = "") {
-  const lower = text.toLowerCase();
-  return bannedWords.some((word) => lower.includes(word));
+// Create a regex from banned words (word boundaries)
+const bannedRegex = new RegExp(`(?:${bannedWords.join("|")})`, "i");
+
+function normalizeText(text = "") {
+  return text
+    .replace(/[#_]/g, " ") // replace hashtags and underscores
+    .replace(/[^\w\s]/g, "") // remove emojis/special chars
+    .toLowerCase(); // lowercase
 }
 
-module.exports = { isUnsafe };
+function isUnsafe(text = "") {
+  return bannedRegex.test(normalizeText(text));
+}
+
+
+module.exports = { isUnsafe, normalizeText };

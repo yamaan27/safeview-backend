@@ -1,7 +1,7 @@
 const ContentSettings = require("../models/ContentSettings");
 const redisClient = require("../utils/redisClient");
 const axios = require("axios");
-const { isUnsafe } = require("../utils/moderation");
+const { isUnsafe, normalizeText } = require("../utils/moderation");
 const { fetchWithRotatingKey } = require("../utils/youtube");
 
 
@@ -531,9 +531,17 @@ const MAX_ITERATIONS = 10;
 const MAX_RESULTS_PER_CALL = 50;
 
 function isSafeVideo(video, blockUnsafe) {
-  if (blockUnsafe && isUnsafe(video.snippet.title)) return false;
-  return true;
+  if (!blockUnsafe) return true;
+
+  // const title = video.snippet?.title || "";
+  // const description = video.snippet?.description || "";
+  const title = normalizeText(video.snippet?.title || "");
+  const description = normalizeText(video.snippet?.description || "");
+  const channel = normalizeText(video.snippet?.channelTitle || "");
+
+  return !(isUnsafe(title) || isUnsafe(description) || isUnsafe(channel));
 }
+
 
 async function getChildSettings(childDeviceId) {
   return ContentSettings.findOne({ childDeviceId });
@@ -651,6 +659,7 @@ exports.searchVideos = async (req, res) => {
         id: v.id,
         title: v.snippet.title,
         channelTitle: v.snippet.channelTitle,
+        description: v.snippet.description,
         publishedAt: v.snippet.publishedAt,
         thumbnail:
           v.snippet.thumbnails.maxres?.url ||

@@ -20,17 +20,38 @@ exports.updateSettings = async (req, res) => {
 
   try {
     // ✅ Update content settings
+    // const updated = await ContentSettings.findOneAndUpdate(
+    //   { childDeviceId },
+    //   {
+    //     allowSearch,
+    //     allowAutoplay,
+    //     blockedCategories,
+    //     blockUnsafeVideos,
+    //     isLocked,
+    //     screenTimeLimitMins,
+    //     updatedAt: new Date(),
+    //   },
+    //   { upsert: true, new: true }
+    // );
+    // Build update payload dynamically
+    const updatePayload = {
+      allowSearch,
+      allowAutoplay,
+      blockedCategories,
+      blockUnsafeVideos,
+      isLocked,
+      screenTimeLimitMins,
+      updatedAt: new Date(),
+    };
+
+    // ✅ Auto-set ageGroup if blockUnsafeVideos is true
+    if (blockUnsafeVideos === true) {
+      updatePayload.ageGroup = "tween";
+    }
+
     const updated = await ContentSettings.findOneAndUpdate(
       { childDeviceId },
-      {
-        allowSearch,
-        allowAutoplay,
-        blockedCategories,
-        blockUnsafeVideos,
-        isLocked,
-        screenTimeLimitMins,
-        updatedAt: new Date(),
-      },
+      updatePayload,
       { upsert: true, new: true }
     );
 
