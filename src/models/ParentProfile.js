@@ -10,6 +10,8 @@ const parentProfileSchema = new mongoose.Schema(
     trialStartedAt: { type: Date, default: Date.now }, // when trial started
     trialExpiresAt: { type: Date }, // when trial ends
     isTrialExpired: { type: Boolean, default: false }, // lock flag
+    isSubscribed: { type: Boolean, default: false },
+    subscriptionExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

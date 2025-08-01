@@ -1,5 +1,54 @@
 const ParentProfile = require("../models/ParentProfile");
 const Pairing = require("../models/Pairing"); // Add this line
+const io = global._io;
+
+
+
+exports.updateSubscription = async (req, res) => {
+  try {
+    const { parentDeviceId } = req.params;
+    const { isSubscribed, days } = req.body;
+
+    if (isSubscribed === true && (days === undefined || isNaN(days))) {
+      return res.status(400).json({
+        message: "Days is required when subscribing",
+      });
+    }
+
+    const updates = {
+      isSubscribed,
+      subscriptionExpiresAt: isSubscribed
+        ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+        : null,
+    };
+
+    const updated = await ParentProfile.findOneAndUpdate(
+      { parentDeviceId },
+      updates,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // 🔔 Emit socket event to this parent
+    if (global._io) {
+      const event = isSubscribed ? "subscriptionStatus" : "subscriptionExpired";
+      global._io.to(parentDeviceId).emit(event, {
+        parentDeviceId,
+        isSubscribed,
+        subscriptionExpiresAt: updates.subscriptionExpiresAt,
+      });
+    }
+
+    res.json({ message: "Subscription status updated", profile: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 
 exports.getProfile = async (req, res) => {
   try {

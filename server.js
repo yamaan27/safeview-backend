@@ -45,16 +45,33 @@ mongoose
       const checkAndNotifyTrialExpiry = require("./src/utils/checkTrialExpiry");
 
       cron.schedule("*/5 * * * *", () => {
-
         // For testing purpose, checking every 5 seconds
 
-      // cron.schedule("*/5 * * * * *", () => {
+        // cron.schedule("*/5 * * * * *", () => {
         console.log("🕵️ Checking for expired trials...");
         checkAndNotifyTrialExpiry();
       });
 
       // ✅ Cron: Fetch trending videos every 30 mins
       // require("./src/utils/fetchTrending");
+
+      // ✅ 🔽 ADD THIS CODE BELOW:
+
+      // Check subscription expiry every 10 seconds
+      // const checkSubscriptionExpiry = require("./src/utils/checkSubscriptionExpiry");
+      // setInterval(() => {
+      //   console.log("🔁 Checking for expired subscriptions...");
+      //   checkSubscriptionExpiry();
+      // }, 10 * 1000); // every 10 seconds (for testing)
+
+
+      // Check subscription expiry every 5 minutes
+      const checkSubscriptionExpiry = require("./src/utils/checkSubscriptionExpiry");
+
+      setInterval(() => {
+        // console.log("🔁 Checking for expired subscriptions...");
+        checkSubscriptionExpiry();
+      }, 5 * 60 * 1000); // every 5 minutes (5 min × 60 sec × 1000 ms)
     });
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));

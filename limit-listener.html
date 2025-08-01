@@ -63,15 +63,16 @@
 </body> -->
 <body>
   <h2>📺 Activity Log Listener</h2>
+
   <div id="status">Connecting...</div>
-  <div id="time">⏳ Remaining Time: --</div>
+  <div id="time">⏳ Screen Time Remaining: --</div>
+  <div id="subscription">📦 Subscription: --</div>
+  <div id="subscriptionTime">🕒 Subscription Time: --</div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    // const socket = io("https://safeview-backend.onrender.com");
     const socket = io("http://localhost:3000");
-
-    const childDeviceId = "child-abc";
+    const childDeviceId = "abc1234"; // or use parentDeviceId if needed
 
     socket.on("connect", () => {
       console.log("✅ Connected to server");
@@ -86,14 +87,30 @@
 
     socket.on("screenTime", (data) => {
       console.log("⏳ Remaining Time:", data.remaining);
-      document.getElementById("time").innerText = `⏳ Remaining Time: ${data.remaining}s`;
+      document.getElementById("time").innerText = `⏳ Screen Time Remaining: ${data.remaining}s`;
+    });
+
+    socket.on("subscriptionStatus", (data) => {
+      console.log("📦 Subscription Started:", data);
+      document.getElementById("subscription").innerText = "📦 Subscription: ✅ Active";
+      if (data.subscriptionExpiresAt) {
+        const date = new Date(data.subscriptionExpiresAt).toLocaleString();
+        document.getElementById("subscriptionTime").innerText = `🕒 Expires At: ${date}`;
+      }
+    });
+
+    socket.on("subscriptionExpired", (data) => {
+      console.log("❌ Subscription Expired:", data);
+      document.getElementById("subscription").innerText = "📦 Subscription: ❌ Expired";
+      document.getElementById("subscriptionTime").innerText = `🕒 Expires At: --`;
     });
 
     socket.on("disconnect", () => {
       document.getElementById("status").innerText = "❌ Disconnected";
     });
   </script>
-</body> 
+</body>
+
 </html>
 
 
