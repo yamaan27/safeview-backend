@@ -15,14 +15,26 @@ const { generateCode } = require("../services/codeGenerator");
 exports.generateCode = async (req, res) => {
   const { childDeviceId } = req.body;
 
-  // ❌ Prevent multiple pairings for same child
+  // 🔎 Check if an existing linked pairing still exists
+  const existing = await Pairing.findOne({ childDeviceId });
+
+  if (existing && existing.isLinked) {
+    return res.status(400).json({
+      message:
+        "Device is already paired. Unlink first before generating new code.",
+    });
+  }
+
+  // 🧹 Clean up any unlinked remnants
   await Pairing.deleteMany({ childDeviceId });
 
+  // ✅ Generate new code and create fresh entry
   const code = generateCode();
   const newPairing = await Pairing.create({ code, childDeviceId });
 
   res.status(201).json({ code });
 };
+
 
 
 // exports.verifyCode = async (req, res) => {
