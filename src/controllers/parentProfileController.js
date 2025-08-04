@@ -15,18 +15,42 @@ exports.updateSubscription = async (req, res) => {
       });
     }
 
+    const now = new Date();
+    const expiresAt = isSubscribed
+      ? new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+      : null;
+
     const updates = {
       isSubscribed,
-      subscriptionExpiresAt: isSubscribed
-        ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-        : null,
+      subscriptionExpiresAt: expiresAt,
+      subscriptionStarted: isSubscribed ? true : false,
+      subscriptionOver: isSubscribed ? false : true,
     };
+
+
+    // If subscribing, push into history
+   const updateOps = isSubscribed
+     ? {
+         $set: updates,
+         $push: {
+           subscriptionHistory: {
+             subscribedAt: now,
+             expiresAt: expiresAt,
+             durationDays: days,
+           },
+         },
+       }
+     : {
+         $set: updates,
+       };
+
 
     const updated = await ParentProfile.findOneAndUpdate(
       { parentDeviceId },
-      updates,
+      updateOps,
       { new: true }
     );
+
 
     if (!updated) {
       return res.status(404).json({ message: "Profile not found" });
@@ -50,20 +74,60 @@ exports.updateSubscription = async (req, res) => {
 
 
 
+// exports.getProfile = async (req, res) => {
+//   try {
+//     const { parentDeviceId } = req.params;
+
+//     // Get parent profile
+//     const profile = await ParentProfile.findOne({ parentDeviceId });
+//     if (!profile) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
+
+//     // Find pairing to get the linked childDeviceId
+//     const pairing = await Pairing.findOne({ parentDeviceId, isLinked: true });
+
+//     // Attach childDeviceId if exists
+//     const profileWithChild = {
+//       ...profile.toObject(),
+//       childDeviceId: pairing ? pairing.childDeviceId : null,
+//     };
+
+//     res.json(profileWithChild);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
 exports.getProfile = async (req, res) => {
   try {
     const { parentDeviceId } = req.params;
 
-    // Get parent profile
-    const profile = await ParentProfile.findOne({ parentDeviceId });
+    let profile = await ParentProfile.findOne({ parentDeviceId });
     if (!profile) {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    // Find pairing to get the linked childDeviceId
+    // 🕓 Auto-expire subscription if past expiry
+    if (
+      profile.isSubscribed &&
+      profile.subscriptionExpiresAt &&
+      new Date(profile.subscriptionExpiresAt) < new Date()
+    ) {
+      profile.isSubscribed = false;
+      profile.subscriptionOver = true;
+      await profile.save();
+
+      global._io?.to(parentDeviceId).emit("subscriptionExpired", {
+        parentDeviceId,
+      });
+    }
+
+
+    // 🔍 Get childDeviceId from pairing
     const pairing = await Pairing.findOne({ parentDeviceId, isLinked: true });
 
-    // Attach childDeviceId if exists
     const profileWithChild = {
       ...profile.toObject(),
       childDeviceId: pairing ? pairing.childDeviceId : null,
@@ -74,6 +138,7 @@ exports.getProfile = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 exports.createProfile = async (req, res) => {
   try {
