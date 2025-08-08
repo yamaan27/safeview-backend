@@ -45,19 +45,39 @@ exports.verifyCode = async (req, res) => {
     return res.status(400).json({ message: "Same device cannot pair" });
   }
 
-  // 🧹 Remove any existing pairings for either device before linking
+  // 🧹 Remove any existing pairings for either device (including this one)
+
+  // 🧹 Remove any existing pairings for either device (EXCEPT current one)
   await Pairing.deleteMany({
-    $or: [
-      { childDeviceId: pairing.childDeviceId },
-      { parentDeviceId: pairing.childDeviceId },
-      { childDeviceId: parentDeviceId },
-      { parentDeviceId: parentDeviceId },
+    $and: [
+      { _id: { $ne: pairing._id } }, // keep current pairing
+      {
+        $or: [
+          { childDeviceId: pairing.childDeviceId },
+          { parentDeviceId: pairing.childDeviceId },
+          { childDeviceId: parentDeviceId },
+          { parentDeviceId: parentDeviceId },
+        ],
+      },
     ],
   });
 
-  pairing.parentDeviceId = parentDeviceId;
-  pairing.isLinked = true;
-  await pairing.save();
+  // ✅ Try updating the current pairing
+  const updatedPairing = await Pairing.findByIdAndUpdate(
+    pairing._id,
+    { parentDeviceId, isLinked: true },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedPairing) {
+    // If it was deleted in race condition, create fresh
+    await Pairing.create({
+      code: pairing.code,
+      childDeviceId: pairing.childDeviceId,
+      parentDeviceId,
+      isLinked: true,
+    });
+  }
 
   res.json({ message: "Paired successfully" });
 };
