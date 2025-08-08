@@ -16,8 +16,10 @@ exports.generateCode = async (req, res) => {
     });
   }
 
-  // 🧹 Clean up any unlinked remnants
-  await Pairing.deleteMany({ childDeviceId });
+  // 🧹 Clean up any old pairings involving this device (as child or parent)
+  await Pairing.deleteMany({
+    $or: [{ childDeviceId }, { parentDeviceId: childDeviceId }],
+  });
 
   // ✅ Generate new code and create fresh entry
   const code = generateCode();
@@ -39,10 +41,19 @@ exports.verifyCode = async (req, res) => {
     return res.status(404).json({ message: "Invalid or already linked" });
   }
 
-
   if (pairing.childDeviceId === parentDeviceId) {
     return res.status(400).json({ message: "Same device cannot pair" });
   }
+
+  // 🧹 Remove any existing pairings for either device before linking
+  await Pairing.deleteMany({
+    $or: [
+      { childDeviceId: pairing.childDeviceId },
+      { parentDeviceId: pairing.childDeviceId },
+      { childDeviceId: parentDeviceId },
+      { parentDeviceId: parentDeviceId },
+    ],
+  });
 
   pairing.parentDeviceId = parentDeviceId;
   pairing.isLinked = true;
@@ -179,7 +190,7 @@ exports.getDeviceInfo = async (req, res) => {
 
   const pairing = await Pairing.findOne({
     $or: [{ childDeviceId: deviceId }, { parentDeviceId: deviceId }],
-  });
+  }).sort({ isLinked: -1, createdAt: -1 }); // Prefer linked + newest
 
   if (!pairing || !pairing.isLinked) {
     // If not found or not yet linked, return unlinked status
