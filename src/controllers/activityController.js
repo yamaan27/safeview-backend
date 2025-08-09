@@ -1,22 +1,5 @@
 const ActivityLog = require("../models/ActivityLog");
 
-// exports.logVideo = async (req, res) => {
-//   const { childDeviceId, videoId, title, thumbnail, duration, channelName } =
-//     req.body;
-
-//   const log = await ActivityLog.create({
-//     childDeviceId,
-//     videoId,
-//     title,
-//     thumbnail,
-//     duration,
-//     channelName,
-//   });
-
-//   res.status(201).json({ message: "Video logged", log });
-// };
-
-
 exports.logVideo = async (req, res) => {
   const { childDeviceId, videoId, title, thumbnail, duration, channelName } =
     req.body;
@@ -53,4 +36,18 @@ exports.getHistory = async (req, res) => {
   });
 
   res.json(logs);
+};
+
+exports.clearHistory = async (req, res) => {
+  const { childDeviceId } = req.params;
+
+  const result = await ActivityLog.deleteMany({ childDeviceId });
+
+  if (global._io) {
+    global._io.to(childDeviceId).emit("activityCleared", { childDeviceId });
+  }
+
+  res.json({
+    message: `Cleared ${result.deletedCount} activity logs for childDeviceId: ${childDeviceId}`,
+  });
 };
