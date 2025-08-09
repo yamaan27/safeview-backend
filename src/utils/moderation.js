@@ -1,4 +1,5 @@
 // src/utils/moderation.js
+const stringSimilarity = require("string-similarity");
 
 const bannedWords = [
   // Violence & Gore
@@ -376,6 +377,9 @@ const bannedWords = [
 // Create a regex from banned words (word boundaries)
 const bannedRegex = new RegExp(`(?:${bannedWords.join("|")})`, "i");
 
+// Similarity threshold (0.8 = 80% similar)
+const SIMILARITY_THRESHOLD = 0.8;
+
 function normalizeText(text = "") {
   return text
     .replace(/[#_]/g, " ") // replace hashtags and underscores
@@ -383,9 +387,42 @@ function normalizeText(text = "") {
     .toLowerCase(); // lowercase
 }
 
+// Checks if any part of text matches a banned word fuzzily
 function isUnsafe(text = "") {
-  return bannedRegex.test(normalizeText(text));
+  const words = normalizeText(text).split(/\s+/).filter(Boolean);
+
+  return words.some((word) => {
+    return bannedWords.some((banned) => {
+      // Exact match
+      if (word === banned) return true;
+      // Fuzzy match
+      const similarity = stringSimilarity.compareTwoStrings(word, banned);
+      return similarity >= SIMILARITY_THRESHOLD;
+    });
+  });
 }
 
+// Replace banned words in query with "kids <word>" (with fuzzy match)
+function markBannedWordsInQuery(query = "") {
+  if (!query) return query;
 
-module.exports = { isUnsafe, normalizeText };
+  let words = query.split(/\s+/);
+  words = words.map((word) => {
+    const cleanWord = normalizeText(word);
+
+    const matchedBanned = bannedWords.find((banned) => {
+      if (cleanWord === banned) return true;
+      const similarity = stringSimilarity.compareTwoStrings(cleanWord, banned);
+      return similarity >= SIMILARITY_THRESHOLD;
+    });
+
+    if (matchedBanned) {
+      return `kids ${word}`;
+    }
+    return word;
+  });
+
+  return words.join(" ");
+}
+
+module.exports = { isUnsafe, normalizeText, markBannedWordsInQuery };
